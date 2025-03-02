@@ -1,0 +1,4169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abholliste</title>
+    <!-- QR Code Libraries from CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- No longer needed: EmailJS Library removed -->
+    <style>
+        /* Dunkelmodus-Variablen */
+        :root {
+                --bg-color: #f4f4f9;
+                --text-color: #333;
+                --table-border: #ddd;
+                --dropzone-bg: #f9f9f9;
+                --header-bg: #ffffff;
+                --deletezone-bg: #f2dede;
+                --deletezone-border: #a94442;
+                --button-bg: #5cb85c;
+                --button-hover: #4cae4c;
+                --day-button-bg: #5bc0de;
+                --day-button-hover: #31b0d5;
+                --name-bg: #f7c6c7;
+                --note-color: #555;
+                --employee-hover: #f4f4f9;
+                --delete-color: #ff0000;
+                --dragover-bg: #e3f2fd;
+                --deletezone-dragover: #ffcdd2;
+                --name-text-color: #000000;  
+        }
+
+        [data-theme="dark"] {
+                --bg-color: #1a1a1a;
+                --text-color: #ffffff;
+                --table-border: #444;
+                --dropzone-bg: #2d2d2d;
+                --header-bg: #2d2d2d;
+                --deletezone-bg: #4a2222;
+                --deletezone-border: #ff4444;
+                --button-bg: #28a745;
+                --button-hover: #218851;
+                --day-button-bg: #2196f3;
+                --day-button-hover: #1976d2;
+                --name-bg: #424242;
+                --note-color: #aaa;
+                --employee-hover: #333;
+                --delete-color: #ff4444;
+                --dragover-bg: #1e3d5a;
+                --deletezone-dragover: #6b2020;
+                --name-text-color: #000000;  
+        }
+
+        /* Basis-Stile */
+        body { 
+                font-family: Arial, sans-serif;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                margin: 20px;
+                transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Überschriften */
+        h1 { 
+                text-align: center;
+                color: var(--text-color);
+        }
+
+        /* Buttons und Steuerungen */
+        .button-container {
+                text-align: center;
+                margin-bottom: 20px;
+        }
+
+        .button-container input,
+        .button-container button {
+                padding: 10px 20px;
+                margin: 5px;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+        }
+
+        .button-container button {
+                background-color: var(--button-bg);
+                color: white;
+                cursor: pointer;
+        }
+
+        .button-container button:hover {
+                background-color: var(--button-hover);
+        }
+
+        .day-selector button {
+                background-color: var(--day-button-bg);
+                color: white;
+        }
+
+        .day-selector button:hover {
+                background-color: var(--day-button-hover);
+        }
+
+        /* Tabellenstile */
+        table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+        }
+
+        table, th, td {
+                border: 1px solid var(--table-border);
+        }
+
+        th, td {
+                padding: 15px;
+                text-align: center;
+        }
+
+        th {
+                background-color: var(--header-bg);
+                color: var(--text-color);
+        }
+
+        /* Zonen */
+        .dropzone {
+                padding: 10px;
+                min-height: 50px;
+                background-color: var(--dropzone-bg);
+                transition: background-color 0.3s ease;
+        }
+
+        .deletezone {
+                padding: 10px;
+                min-height: 50px;
+                background-color: var(--deletezone-bg);
+                color: var(--deletezone-border);
+                border: 2px dashed var(--deletezone-border);
+                transition: all 0.3s ease;
+        }
+
+        /* Name-Elemente */
+        .name {
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin: 1px 0;
+                padding: 1px;
+                border: 1px solid var(--table-border);
+                border-radius: 5px;
+                background-color: var (--name-bg);
+                color: var(--name-text-color);  /* Diese Zeile hinzufügen */
+                transition: all 0.3s ease;
+        }
+
+        /* Rest deiner bestehenden Stile bleibt unverändert */
+        /* Füge diese neuen Animationsstile hinzu */
+        .name {
+                transition: all 0.3s ease;
+        }
+
+        .name:active {
+                transform: scale(0.95);
+                opacity: 0.8;
+        }
+
+        .dropzone {
+                transition: background-color 0.3s ease;
+        }
+
+        .dropzone.drag-over {
+                background-color: #e3f2fd;
+                box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        .deletezone {
+                transition: all 0.3s ease;
+        }
+
+        .deletezone.drag-over {
+                background-color: #ffcdd2;
+                transform: scale(1.02);
+        }
+
+        @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+        }
+
+        .name-new {
+                animation: fadeIn 0.3s ease-out;
+        }
+
+        .name-delete {
+                animation: shake 0.3s ease-in-out;
+        }
+
+        /* Theme-Umschalter */
+        .theme-toggle {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 10px;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                border: none;
+                background-color: var(--button-bg);
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+                transform: scale(1.1);
+        }
+
+        /* Modal-Stile */
+        .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                overflow-y: auto;
+        }
+
+        .modal.active {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+        }
+
+        .modal-content {
+                background-color: var(--bg-color);
+                margin: 20px;
+                padding: 20px;
+                border: 1px solid var(--table-border);
+                border-radius: 5px;
+                width: 80%;
+                max-width: 500px;
+                position: relative;
+        }
+
+        .close {
+                color: var(--text-color);
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+        }
+
+        .close:hover {
+                color: var(--delete-color);
+        }
+
+        #noteText {
+                width: 100%;
+                padding: 8px 12px;
+                margin: 10px 0;
+                border: 1px solid var(--table-border);
+                border-radius: 4px;
+                background-color: var(--dropzone-bg);
+                color: var(--text-color);
+                font-size: 16px;
+                line-height: 1.5;
+        }
+
+        .modal-content button {
+                background-color: rgb(0, 115, 255);
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+        }
+
+        .modal-content button:hover {
+                background-color: rgb(93, 0, 255);
+        }
+
+        .note-section, .profile-section {
+                margin-bottom: 20px;
+                padding: 15px;
+                border-radius: 4px;
+                background-color: var(--dropzone-bg);
+        }
+
+        /* Photo preview and controls */
+        .profile-photo {
+                margin-bottom: 15px;
+                text-align: center;
+        }
+
+        .photo-preview {
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin: 0 auto 10px;
+                border: 3px solid var(--table-border);
+                background-color: var(--bg-color);
+        }
+
+        .photo-preview img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+        }
+
+        .photo-controls {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+                margin-bottom: 15px;
+        }
+
+        .upload-btn {
+                background-color: var(--button-bg);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                display: inline-block;
+                transition: background-color 0.3s;
+        }
+
+        .upload-btn:hover {
+                background-color: var(--button-hover);
+        }
+
+        .camera-btn, .remove-btn {
+                background-color: var(--day-button-bg);
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+        }
+
+        .camera-btn:hover {
+                background-color: var(--day-button-hover);
+        }
+
+        .remove-btn {
+                background-color: #dc3545;
+        }
+
+        .remove-btn:hover {
+                background-color: #bd2130;
+        }
+
+        /* Child photos in names list */
+        .name-photo {
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-right: 8px;
+                border: 1px solid var(--table-border);
+                flex-shrink: 0;
+        }
+
+        .name-photo img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+        }
+
+        /* Updated name styling to include photo */
+        .name {
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin: 1px 0;
+                padding: 4px 8px;
+                border: 1px solid var(--table-border);
+                border-radius: 5px;
+                background-color: var(--name-bg);
+                color: var(--name-text-color);
+                transition: all 0.3s ease;
+        }
+
+        .name-content {
+                display: flex;
+                align-items: center;
+                flex-grow: 1;
+        }
+
+        .profile-grid {
+                display: grid;
+                gap: 15px;
+                margin-top: 10px;
+        }
+
+        .profile-item {
+                display: grid;
+                gap: 5px;
+        }
+
+        .profile-item label {
+                font-weight: bold;
+                color: var(--text-color);
+        }
+
+        .profile-item input {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid var(--table-border);
+                border-radius: 4px;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+        }
+
+        .modal-buttons {
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+                margin-top: 20px;
+        }
+
+        h3 {
+                margin: 0 0 10px 0;
+                color: var(--text-color);
+        }
+
+        /* Füge dies zu deinem bestehenden Stilabschnitt hinzu */
+        #trashButton {
+                background-color: var(--deletezone-bg);
+                color: var (--deletezone-border);
+                border: 2px solid var(--deletezone-border);
+                padding: 10px 15px;
+                font-size: 18px;
+                transition: all 0.3s ease;
+        }
+
+        #trashButton:hover {
+                background-color: var(--deletezone-border);
+                color: white;
+                transform: scale(1.05);
+        }
+
+        /* Füge diese CSS-Regeln zu deinem Style-Block hinzu */
+        #employeeList {
+                display: none;
+        }
+
+        .modal {
+                display: none;  
+        }
+
+        .modal.active {
+                display: flex;
+        }
+
+        .collapsible-section {
+                margin: 20px 0;
+        }
+
+        .collapse-button {
+                background-color: var(--day-button-bg);
+                color: white;
+                border: none;
+                padding: 10px;
+                cursor: pointer;
+                width: 100%;
+                text-align: left;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;
+        }
+
+        .collapse-button:hover {
+                background-color: rgb(0, 153, 255);
+        }
+
+        .collapse-button::after {
+                content: '▼';
+                font-size: 12px;
+        }
+
+        .collapse-button.collapsed::after {
+                content: '▲';
+        }
+
+        .collapsible-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.expanded {
+                max-height: 500px; /* Passe diesen Wert basierend auf deinem Inhalt an */
+        }
+
+        /* Füge dies zu deinem bestehenden Stilabschnitt hinzu */
+        #printButton {
+                background-color: var(--deletezone-bg);
+                color: var(--deletezone-border);
+                border: 2px solid var(--deletezone-border);
+                padding: 10px 15px;
+                font-size: 18px;
+                transition: all 0.3s ease;
+        }
+
+        #printButton:hover {
+                background-color: var(--deletezone-border);
+                color: white;
+                transform: scale(1.05);
+        }
+
+        /* Druckstile */
+        @media print {
+                /* Verstecke unnötige Elemente */
+                .collapsible-section, 
+                .button-container, 
+                #namesContainer,
+                .theme-toggle,
+                #printButton,
+                #trashButton {
+                        display: none !important;
+                }
+
+                /* Sichtbarkeit zurücksetzen */
+                body * {
+                        visibility: hidden;
+                }
+
+                /* Tabelle und Überschrift sichtbar machen */
+                table, 
+                table *,
+                h1 {
+                        visibility: visible;
+                }
+
+                /* Elemente positionieren */
+                table {
+                        position: absolute;
+                        left: 0;
+                        top: 50px;
+                }
+
+                h1 {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                }
+
+                /* Farbiger Druck erzwingen */
+                * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                /* Hintergrundfarben beibehalten */
+                .name {
+                        color: black !important;
+                        border: 1px solid #ccc !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                .dropzone {
+                        background-color: white !important;
+                        border: 1px solid #ccc !important;
+                }
+
+                /* Text lesbar halten */
+                .name span {
+                        color: black !important;
+                }
+
+                /* Dunkelmodus zurücksetzen */
+                [data-theme="dark"] {
+                        --bg-color: #ffffff !important;
+                        --text-color: #000000 !important;
+                        --table-border: #ddd !important;
+                        --dropzone-bg: #ffffff !important;
+                        --header-bg: #ffffff !important;
+                        --name-bg: #f7c6c7 !important;
+                }
+
+                /* Weißen Hintergrund und schwarzen Text erzwingen */
+                body {
+                        background-color: white !important;
+                        color: black !important;
+                }
+
+                table, th, td {
+                        background-color: white !important;
+                        color: black !important;
+                        border-color: #ddd !important;
+                }
+
+                .dropzone {
+                        background-color: white !important;
+                }
+
+                th {
+                        background-color: white !important;
+                        color: black !important;
+                }
+
+                /* Name-Elemente sichtbar halten */
+                .name {
+                        color: black !important;
+                        border: 1px solid #ddd !important;
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                /* Rest deiner bestehenden Druckstile... */
+
+                /* Entferne die widersprüchliche .name-Regel, die die Hintergrundfarbe setzt */
+                .name {
+                        /* Entferne diese Zeile, die die Farben überschreibt */
+                        /* background-color: var(--name-bg) !important; */
+                        
+                        /* Behalte diese Einstellungen bei */
+                        color: black !important;
+                        border: 1px solid #ddd !important;
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                /* Füge dies hinzu, um sicherzustellen, dass Inline-Stile beibehalten werden */
+                [style*="background-color"] {
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                /* Erzwinge, dass der Browser Hintergrundfarben anzeigt */
+                * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                }
+
+                /* Hide deletion zone completely */
+                .deletezone, 
+                .deletezone * {
+                        display: none !important;
+                }
+        }
+
+/* Employee Modal Styles */
+.employee-modal-header {
+    margin-bottom: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--table-border);
+}
+
+.employee-modal-header h2 {
+    margin: 0 0 3px 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.employee-modal-header p {
+    margin: 0;
+    color: var(--note-color);
+    font-size: 13px;
+}
+
+/* Current employees section */
+.current-employees {
+    background-color: var(--dropzone-bg);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.current-employees h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.current-employees h3::before {
+    content: '👥';
+    display: inline-block;
+}
+
+.employee-list-container {
+    max-height: 250px;
+    overflow-y: auto;
+    border-radius: 4px;
+    border: 1px solid var(--table-border);
+    margin-bottom: 10px;
+}
+
+/* Employee item styling */
+.employee-item {
+    padding: 0;
+    margin: 0 0 3px 0;
+    background-color: var(--bg-color);
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.employee-item:last-child {
+    margin-bottom: 0;
+}
+
+.employee-item:hover {
+    border-color: var(--button-bg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.employee-main-content {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    gap: 8px;
+}
+
+.employee-delete-btn {
+    color: var(--delete-color);
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px;
+    grid-column: 1;
+    border-radius: 50%;
+    transition: all 0.2s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.employee-delete-btn:hover {
+    background-color: rgba(255, 0, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.employee-name-container {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.employee-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-color);
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.employee-subtitle {
+    font-size: 11px;
+    color: var(--note-color);
+    margin-top: 1px;
+}
+
+.employee-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--button-bg);
+    cursor: pointer;
+    margin-left: auto;
+}
+
+/* Details styling */
+.employee-details {
+    display: none;
+    padding: 10px;
+    border-top: 1px solid var(--table-border);
+    background-color: var(--dropzone-bg);
+    font-size: 13px;
+}
+
+.employee-details.visible {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+.detail-item {
+    margin: 6px 0;
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    align-items: center;
+}
+
+.detail-item strong {
+    color: var(--note-color);
+}
+
+/* Assign button styling */
+.assign-button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+
+.assign-button-container button {
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.assign-button-container button:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Add employee section styling */
+.add-employee-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--dropzone-bg);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-employee-toggle:hover {
+    background-color: var(--button-hover);
+    color: white;
+}
+
+.add-employee-toggle .plus-icon {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.add-employee-toggle .text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.add-employee {
+    background-color: var(--dropzone-bg);
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 8px;
+    display: none;
+}
+
+.add-employee.visible {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+.add-employee h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.add-employee h3::before {
+    content: '➕';
+    display: inline-block;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--button-bg);
+    box-shadow: 0 0 0 2px rgba(92, 184, 92, 0.25);
+}
+
+.notification-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.notification-option input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--button-bg);
+}
+
+.add-employee button {
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    float: right;
+    margin-top: 8px;
+}
+
+.add-employee button:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Form field focus states */
+.add-employee input:focus-visible {
+    outline: none;
+    border-color: var(--button-bg);
+    box-shadow: 0 0 0 2px rgba(92, 184, 92, 0.25);
+}
+
+/* Animation for the details section */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile-friendly styles */
+@media screen and (max-width: 768px) {
+    body {
+        margin: 10px;
+        font-size: 14px;
+    }
+
+    /* Header adjustments */
+    h1 {
+        font-size: 1.5em;
+        margin: 10px 0;
+    }
+
+    /* Button container adjustments */
+    .button-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+    }
+
+    .button-container button,
+    .button-container input {
+        width: calc(50% - 5px);
+        padding: 12px;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    /* Day selector adjustments */
+    .day-selector button {
+        width: calc(33.33% - 5px);
+        margin-bottom: 5px;
+    }
+
+    /* Table adjustments */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th, td {
+        padding: 8px;
+        min-width: 100px;
+    }
+
+    /* Name elements adjustments */
+    .name {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    /* Modal adjustments */
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Theme toggle button adjustment */
+    .theme-toggle {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+    }
+
+    /* Employee modal adjustments */
+    .employee-item {
+        padding: 8px;
+    }
+
+    .employee-details {
+        font-size: 12px;
+    }
+
+    /* Touch-friendly adjustments */
+    button, 
+    input[type="checkbox"],
+    .name,
+    .employee-delete-btn {
+        min-height: 44px; /* Minimum touch target size */
+    }
+
+    /* Improve touch targets */
+    .checkbox-container {
+        padding: 8px 0;
+    }
+
+    .employee-checkbox {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Improve modal scrolling */
+    .modal {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Improve drag and drop for touch devices */
+    .dropzone {
+        min-height: 80px;
+        margin: 5px 0;
+    }
+
+    /* Improve delete zone visibility */
+    .deletezone {
+        min-height: 60px;
+        margin: 10px 0;
+    }
+}
+
+/* Additional touch improvements */
+@media (hover: none) {
+    /* Make buttons more touch-friendly */
+    button:hover {
+        transform: none !important;
+    }
+
+    /* Improve touch feedback */
+    button:active,
+    .name:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+}
+
+/* Additional adjustments for very small screens */
+@media screen and (max-width: 320px) {
+    .button-container button,
+    .button-container input {
+        width: 100%;
+    }
+
+    .day-selector button {
+        width: calc(50% - 5px);
+    }
+}
+
+/* Add to your existing style section */
+.time-cell {
+    cursor: pointer;
+    position: relative;
+}
+
+.time-edit {
+    width: 80px;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid var (--table-border);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.time-controls {
+    text-align: center;
+    margin: 10px 0;
+    display: none; /* Hide time controls by default */
+}
+
+.time-controls button {
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    margin: 0 5px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.time-controls button:hover {
+    background-color: var (--button-hover);
+}
+
+.remove-column {
+    color: var(--delete-color);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.remove-column:hover {
+    transform: scale(1.1);
+}
+
+/* Add to your existing style section */
+.birthday-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.assign-button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.add-employee {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.add-employee input {
+    width: 100%;
+}
+
+.add-employee button {
+    align-self: flex-end;
+}
+
+
+/* Animation für das Ausklappen */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* QR Code Scanner Styles */
+.scanner-container {
+    position: relative;
+    width: 100%;
+    margin: 15px 0;
+}
+
+#scanner-video {
+    width: 100%;
+    background-color: #000;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+}
+
+#scanner-loading, #scanner-error {
+    text-align: center;
+    padding: 15px;
+    font-weight: bold;
+}
+
+#scanner-error {
+    color: red;
+}
+
+.scanner-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#scan-result {
+    text-align: center;
+    min-height: 30px;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    background-color: var(--dropzone-bg);
+}
+
+.highlight-child {
+    animation: highlight-pulse 2s infinite;
+}
+
+@keyframes highlight-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(92, 184, 92, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0); }
+}
+
+/* QR Code Generation */
+.qr-code-section {
+    margin-top: 15px;
+    text-align: center;
+}
+
+#qrcode-container {
+    width: 150px;
+    height: 150px;
+    margin: 10px auto;
+    padding: 5px;
+    background-color: white;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+}
+
+.qr-code-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Fixed Scan Button */
+#fixedScanButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+#fixedScanButton:hover, #fixedScanButton:active {
+    transform: scale(1.05);
+    background-color: var(--button-hover);
+}
+
+/* Email Queue Button */
+#emailQueueButton {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--day-button-bg);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+#emailQueueButton:hover {
+    transform: scale(1.05);
+    background-color: var(--day-button-hover);
+}
+
+#emailQueueBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Email Queue Modal */
+.email-queue-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+}
+
+.email-queue-item {
+    padding: 10px;
+    border-bottom: 1px solid var(--table-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.email-queue-item:last-child {
+    border-bottom: none;
+}
+
+.email-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+/* Ensure it's accessible on smaller screens */
+@media screen and (max-width: 768px) {
+    #fixedScanButton {
+        bottom: 15px;
+        right: 15px;
+        width: 70px;
+        height: 70px;
+    }
+}
+
+</style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
+        🌓
+    </button>
+  <h1>Abholliste</h1>
+  <div class="collapsible-section">
+    <button class="collapse-button" onclick="toggleCollapse(this)">
+        Menü
+    </button>
+    <div class="collapsible-content">
+        <div class="day-selector button-container">
+            <button type="button" onclick="selectDay('Montag')">Montag</button>
+            <button type="button" onclick="selectDay('Dienstag')">Dienstag</button>
+            <button type="button" onclick="selectDay('Mittwoch')">Mittwoch</button>
+            <button type="button" onclick="selectDay('Donnerstag')">Donnerstag</button>
+            <button type="button" onclick="selectDay('Freitag')">Freitag</button>
+        </div>
+        <div class="button-container">
+            <input type="text" id="childName" placeholder="Name des Kindes">
+            <button type="button" onclick="addChild()">Kind hinzufügen</button>
+            <button type="button" onclick="saveTable()">Speichern</button>
+            <button type="button" onclick="clearTable()">Liste löschen</button>
+            <button id="exportButton">Exportieren</button>
+            <button id="importButton">Importieren</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json">
+            <button id="trashButton" title="Alle Daten löschen">🗑️</button>
+            <button id="printButton" title="Aktuelle Tabelle drucken">🖨️</button>
+            
+        </div>
+        <div id="namesContainer" style="text-align: center;"></div>
+    </div>
+</div>
+<div class="button-container">
+    <!-- Existing buttons -->
+    <input type="text" id="searchInput" placeholder="Suche Kind..." oninput="searchChild()">
+</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th id="zuständigButton-0" onclick="showEmployeeList(0)"></th>
+        <th id="zuständigButton-1" onclick="showEmployeeList(1)" class="zuständig-button">Zuständig</th>
+        <th id="zuständigButton-2" onclick="showEmployeeList(2)" class="zuständig-button">Zuständig</th>
+        <th id="zuständigButton-3" onclick="showEmployeeList(3)" class="zuständig-button">Zuständig</th>
+        <th id="zuständigButton-4" onclick="showEmployeeList(4)" class="zuständig-button">Zuständig</th>
+        <th id="zuständigButton-5" onclick="showEmployeeList(5)" class="zuständig-button">Zuständig</th>
+        <th id="zuständigButton-6" onclick="showEmployeeList(6)"></th>
+      </tr>
+      <tr>
+        <th>Uhrzeit</th>
+        <th class="time-cell" ondblclick="editTime(this)">11:45</th>
+        <th class="time-cell" ondblclick="editTime(this)">13:30</th>
+        <th class="time-cell" ondblclick="editTime(this)">14:00</th>
+        <th class="time-cell" ondblclick="editTime(this)">14:30</th>
+        <th class="time-cell" ondblclick="editTime(this)">15:00</th>
+        <th class="time-cell" ondblclick="editTime(this)">15:30</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="deletezone">
+          <button id="moveUncheckedButton" onclick="moveUncheckedToDeleteZone()">Nicht anwesend</button>
+          <div>löschen</div>
+        </td>
+        <td class="dropzone"></td>
+        <td class="dropzone"></td>
+        <td class="dropzone"></td>
+        <td class="dropzone"></td>
+        <td class="dropzone"></td>
+        <td class="dropzone"></td>
+      </tr>
+    </tbody>
+  </table>
+
+<!-- Add this after your table -->
+<div class="time-controls">
+    <button onclick="addTimeSlot()">+ Zeit hinzufügen</button>
+    <button onclick="removeTimeSlot()">- Zeit entfernen</button>
+</div>
+
+  <div id="noteModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Kind Details</h2>
+        
+        <!-- Note Section -->
+        <div class="note-section">
+            <h3>Notiz</h3>
+            <input type="text" id="noteText" placeholder="Ihre Notiz hier eingeben...">
+        </div>
+
+        <!-- Profile Section -->
+        <div class="profile-section">
+            <h3>Profil</h3>
+            <div class="profile-photo">
+                <div id="photoPreview" class="photo-preview">
+                    <img id="childPhoto" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='25' fill='%23ccc'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%23ccc'/%3E%3C/svg%3E" alt="Kind Photo">
+                </div>
+                <div class="photo-controls">
+                    <label for="photoUpload" class="upload-btn">Foto auswählen</label>
+                    <input type="file" id="photoUpload" accept="image/*" style="display: none;">
+                    <button id="takePicture" class="camera-btn">📷 Aufnehmen</button>
+                    <button id="removePhoto" class="remove-btn">❌ Entfernen</button>
+                </div>
+            </div>
+            <div class="profile-grid">
+                <div class="profile-item">
+                    <label for="birthDate">Geburtsdatum:</label>
+                    <input type="date" id="birthDate">
+                </div>
+                <div class="profile-item">
+                    <label for="allergies">Allergien:</label>
+                    <input type="text" id="allergies" placeholder="Allergien eingeben...">
+                </div>
+                <div class="profile-item">
+                    <label for="contact">Kontaktdaten:</label>
+                    <input type="text" id="contact" placeholder="Kontaktdaten eingeben...">
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-buttons">
+            <button onclick="saveNote()">Notiz speichern</button>
+            <button onclick="saveProfile()">Profil speichern</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scanner Modal for QR Code Scanning -->
+<div id="scannerModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeScannerModal()">&times;</span>
+        <h2>QR-Code Scanner</h2>
+        <div class="scanner-container">
+            <video id="scanner-video" width="100%" height="300"></video>
+            <div id="scanner-loading">Kamera wird gestartet...</div>
+            <div id="scanner-error" style="display: none; color: red;"></div>
+        </div>
+        <div class="scanner-controls">
+            <button onclick="startScanning()">Scanner starten</button>
+            <button onclick="stopScanning()">Scanner stoppen</button>
+        </div>
+        
+        <div class="upload-fallback" style="margin-top: 15px; text-align: center;">
+            <p><strong>Alternativ:</strong> QR-Code als Bild hochladen</p>
+            <input type="file" id="qr-file-input" accept="image/*" style="display: none;">
+            <button class="upload-btn" onclick="document.getElementById('qr-file-input').click()">Bild auswählen</button>
+        </div>
+        <div id="scan-result" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+</div>
+
+<!-- Update your employeeModal div -->
+<div id="employeeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEmployeeModal()">&times;</span>
+        <div class="current-employees">
+            <h3>Verfügbare Mitarbeitende</h3>
+            <div id="employeesList"></div>
+        </div>
+        
+        <div class="add-employee-toggle" onclick="toggleAddEmployeeForm()">
+            <span class="plus-icon">+</span>
+            <span class="text">Mitarbeitende hinzufügen</span>
+        </div>
+        
+        <div class="add-employee" style="display: none;">
+            <h3>Neue Mitarbeitende hinzufügen</h3>
+            
+            <div class="form-group">
+                <label for="employeeName">Name:</label>
+                <input type="text" id="employeeName" placeholder="Name des Mitarbeitenden">
+            </div>
+            
+            <div class="form-group">
+                <label for="employeeContact">Kontakt:</label>
+                <input type="text" id="employeeContact" placeholder="Telefonnummer oder andere Kontaktdaten"> 
+            </div>
+            
+            <div class="form-group">
+                <label for="employeeWorkHours">Arbeitszeiten:</label>
+                <input type="text" id="employeeWorkHours" placeholder="z.B. Mo-Fr 8:00-16:00">
+            </div>
+            
+            <div class="form-group">
+                <label for="employeeEmail">Email:</label>
+                <input type="email" id="employeeEmail" placeholder="email@example.com">
+            </div>
+            
+            <div class="notification-option">
+                <input type="checkbox" id="employeeNotify" checked>
+                <label for="employeeNotify">Email-Benachrichtigungen erhalten</label>
+            </div>
+            
+            <button type="button" onclick="addEmployee()">Hinzufügen</button>
+        </div>
+    </div>
+</div>
+
+  <!-- Fixed Scan Button -->
+  <button id="fixedScanButton" onclick="openScannerModal()" title="QR-Code scannen">📷</button>
+  
+  <!-- Fixed Email Queue Button -->
+    <button id="emailQueueButton" onclick="openEmailQueueModal()" title="E-Mail-Warteschlange">
+    📧 <span id="emailQueueBadge">0</span>
+  </button>
+  
+  <!-- Email Queue Modal -->
+  <div id="emailQueueModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEmailQueueModal()">&times;</span>
+        <h2>E-Mail-Warteschlange</h2>
+        <p id="queueDescription">Hier können Sie alle E-Mails in der Warteschlange einsehen und entweder einzeln senden oder alle auf einmal versenden.</p>
+        <div class="email-queue-list" id="emailQueueList"></div>
+        <div class="email-buttons">
+            <button onclick="clearEmailQueue()" class="remove-btn">Warteschlange leeren</button>
+        </div>
+        
+        <!-- Email Preferences Section -->
+        <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--table-border);">
+            <h3>Email-Einstellungen</h3>
+            <div style="margin: 10px 0;">
+                <label>
+                    <input type="checkbox" id="autoOpenEmailClient"> 
+                    E-Mail-Client automatisch öffnen beim Hinzufügen zur Warteschlange
+                </label>
+            </div>
+            <div style="margin: 10px 0;">
+                <label>
+                    <input type="checkbox" id="autoShowEmailQueue" checked> 
+                    Warteschlange automatisch anzeigen wenn E-Mails hinzugefügt werden
+                </label>
+            </div>
+            <button onclick="saveEmailPreferences()" class="camera-btn" style="margin-top: 10px;">Einstellungen speichern</button>
+        </div>
+    </div>
+  </div>
+  
+  <script>
+    // Add these functions at the start of your script section
+    let isAuthenticated = false; // Variable to track password authentication state
+    let emailQueue = []; // Initialize empty email queue
+    // Email preferences
+    let emailPreferences = { 
+        autoOpenEmailClient: false,  // Automatically open email client when email is added to queue
+        autoShowEmailQueue: true     // Automatically show email queue when emails are added
+    };
+    
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+    }
+
+    let currentDay = 'Montag';
+    let hasUnsavedChanges = false;
+    let originalTableData = null;
+    const storageKeys = {
+        'Montag': 'tableData_Montag',
+        'Dienstag': 'tableData_Dienstag',
+        'Mittwoch': 'tableData_Mittwoch',
+        'Donnerstag': 'tableData_Donnerstag',
+        'Freitag': 'tableData_Freitag'
+    };
+    let counter = 0;
+    let currentZuständigButton = null;
+    let globalEmployees = [];
+    
+    // Füge diesen neuen Speicher-Schlüssel für die globale Kind-Zeitzonenzuordnung hinzu
+    const childTimeZoneKey = 'childDefaultTimeZones';
+
+    function initializeDay() {
+        const today = new Date().getDay();
+        let dayName = 'Montag';
+        switch (today) {
+            case 1: dayName = 'Montag'; break;
+            case 2: dayName = 'Dienstag'; break;
+            case 3: dayName = 'Mittwoch'; break;
+            case 4: dayName = 'Donnerstag'; break;
+            case 5: dayName = 'Freitag'; break;
+            default: dayName = 'Wochenende';
+        }
+        selectDay(dayName);
+    }
+
+    function selectDay(day) {
+        if (currentDay !== day) {
+            // Restore children from deletion zone before switching days
+            restoreMovedChildren();
+            
+            currentDay = day;
+            document.querySelector('h1').textContent = `Abholliste - ${day}`;
+            document.querySelectorAll('.zuständig-button').forEach(btn => btn.innerHTML = 'Zuständig');
+            loadTable();
+            loadGlobalEmployees();
+        }
+    }
+
+    // Modify the addChild function to use timestamp-based IDs
+    function addChild() {
+        const name = document.getElementById('childName').value;
+        if (name.trim() !== '') {
+            const colors = ['#f7c6c7', '#f9e79f', '#aed6f1', '#d2b4de', '#a9dfbf', '#fdebd0', '#d4e6f1', '#fadbd8', '#d5f5e3'];
+            const backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+            // Create unique ID using timestamp
+            const uniqueId = 'child-' + Date.now();
+            
+            const nameElem = document.createElement('div');
+            nameElem.className = 'name name-new';
+            nameElem.draggable = true;
+            nameElem.id = uniqueId;  // Use the unique ID
+            nameElem.ondragstart = drag;
+            nameElem.ondblclick = addOrRemoveNote;
+            nameElem.style.backgroundColor = backgroundColor;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = name;
+            nameElem.appendChild(nameSpan);
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'check';
+            checkbox.checked = false;
+            nameElem.appendChild(checkbox);
+
+            const namesContainer = document.getElementById('namesContainer');
+            namesContainer.appendChild(nameElem);
+
+            document.getElementById('childName').value = '';
+            saveTable();
+        }
+    }
+
+    let currentNoteElement = null;
+    
+    function addOrRemoveNote() {
+        const existingNote = this.querySelector('.note');
+        if (existingNote) {
+            this.removeChild(existingNote);
+        } else {
+            currentNoteElement = this;
+            const modal = document.getElementById('noteModal');
+            const noteText = document.getElementById('noteText');
+            noteText.value = ''; // Clear previous note
+
+            // Load profile data if exists
+            const profiles = JSON.parse(localStorage.getItem('childProfiles') || '{}');
+            const profileData = profiles[currentNoteElement.id] || {};
+            
+            // Load existing photo if available
+            if (profileData.photo && !profileData.photo.includes('svg+xml')) {
+                document.getElementById('childPhoto').src = profileData.photo;
+            } else {
+                // Reset to default placeholder image
+                document.getElementById('childPhoto').src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='25' fill='%23ccc'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%23ccc'/%3E%3C/svg%3E";
+            }
+            
+            document.getElementById('birthDate').value = profileData.birthDate || '';
+            document.getElementById('allergies').value = profileData.allergies || '';
+            document.getElementById('contact').value = profileData.contact || '';
+            
+            // Clear QR code container when opening profile
+            const qrContainer = document.getElementById('qrcode-container');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                
+                // If this child has saved QR data, load it
+                if (profileData.qrData) {
+                    try {
+                        // Create a canvas element for the QR code
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 150;
+                        canvas.height = 150;
+                        qrContainer.appendChild(canvas);
+                        
+                        // Regenerate QR code from saved data
+                        QRCode.toCanvas(canvas, profileData.qrData, {
+                            width: 150,
+                            margin: 4,
+                            color: {
+                                dark: "#000000",
+                                light: "#ffffff"
+                            }
+                        }, function(error) {
+                            if (error) {
+                                console.error("Error loading saved QR code:", error);
+                            }
+                        });
+                    } catch (err) {
+                        console.error("Failed to load saved QR code:", err);
+                    }
+                }
+            }
+
+            modal.classList.add('active');
+        }
+    }
+
+    function saveNote() {
+        const noteText = document.getElementById('noteText').value.trim();
+        if (noteText && currentNoteElement) {
+            const noteElem = document.createElement('div');
+            noteElem.textContent = noteText;
+            noteElem.className = 'note';
+            currentNoteElement.appendChild(noteElem);
+        }
+        closeModal();
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('noteModal');
+        modal.classList.remove('active'); // Ändere dies von style.display
+        currentNoteElement = null;
+        
+        // Clear all fields
+        document.getElementById('noteText').value = '';
+        document.getElementById('birthDate').value = '';
+        document.getElementById('allergies').value = '';
+        document.getElementById('contact').value = '';
+    }
+
+    // Add event listeners for modal
+    document.querySelector('.close').onclick = closeModal;
+    window.onclick = function(event) {
+        const modal = document.getElementById('noteModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+        
+        const employeeList = document.getElementById('employeeList');
+        if (employeeList && !event.target.closest('.zuständig-button') && !event.target.closest('#employeeList')) {
+            employeeList.style.display = 'none';
+        }
+    };
+
+    function drag(event) {
+      event.dataTransfer.setData("text/plain", event.target.id);
+      event.target.classList.add('name-delete');
+    }
+
+    // Modifizierte ondrop Funktion
+    document.querySelectorAll('.dropzone, .deletezone').forEach((zone, zoneIndex) => {
+      zone.ondragover = event => {
+        event.preventDefault();
+        zone.classList.add('drag-over');
+      };
+
+      zone.ondragleave = event => {
+        zone.classList.remove('drag-over');
+      };
+
+      zone.ondrop = event => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+        const data = event.dataTransfer.getData("text/plain");
+        const childElement = document.getElementById(data);
+        childElement.classList.remove('name-delete');
+
+        // Wenn dies die erste Änderung ist, speichere den Originalzustand
+        if (!hasUnsavedChanges) {
+            originalTableData = JSON.parse(localStorage.getItem(storageKeys[currentDay]) || '{"dropzones":[],"namesContainer":[]}');
+            hasUnsavedChanges = true;
+        }
+
+        if (zone.classList.contains('deletezone')) {
+          if (childElement) {
+            childElement.style.animation = 'fadeIn 0.3s ease-out reverse';
+            setTimeout(() => {
+              childElement.parentNode.removeChild(childElement);
+            }, 280);
+          }
+        } else if (!zone.contains(childElement)) {
+          // Überprüfe, ob es sich um die erste Platzierung dieses Kindes handelt
+          const isFirstPlacement = checkIfFirstPlacement(childElement.id);
+
+          if (childElement.parentNode) {
+            childElement.parentNode.removeChild(childElement);
+          }
+          
+          zone.appendChild(childElement);
+          // Sort children after adding new child
+          sortChildrenAlphabetically(zone);
+          
+          childElement.style.animation = 'fadeIn 0.3s ease-out';
+          
+          // Wenn es die erste Platzierung ist, speichere die Zeitzone für alle Tage
+          if (isFirstPlacement) {
+            // Korrigiere den zoneIndex für die richtige Zeitzone
+            const correctedZoneIndex = zoneIndex - 1;  // Subtrahiere 1 wegen der Löschzone
+            saveChildDefaultTimeZone(childElement.id, correctedZoneIndex);
+          }
+          
+          // Speichere die aktuelle Tagesansicht
+          saveTable();
+        }
+      };
+    });
+
+    // Neue Funktion: Überprüft, ob ein Kind zum ersten Mal platziert wird
+    function checkIfFirstPlacement(childId) {
+      const defaultTimeZones = JSON.parse(localStorage.getItem(childTimeZoneKey) || "{}");
+      return !defaultTimeZones.hasOwnProperty(childId);
+    }
+
+    // Neue Funktion: Speichert die Standard-Zeitzone eines Kindes für alle Tage
+    function saveChildDefaultTimeZone(childId, zoneIndex) {
+        // Load existing default time zones
+        const defaultTimeZones = JSON.parse(localStorage.getItem(childTimeZoneKey) || "{}");
+        
+        // Set the default time zone for this child
+        defaultTimeZones[childId] = zoneIndex;
+        
+        // Save the updated list
+        localStorage.setItem(childTimeZoneKey, JSON.stringify(defaultTimeZones));
+        
+        // Get current child info
+        const currentChild = findChildInfoById(childId);
+        if (!currentChild) return;
+        
+        // Store current day
+        const originalDay = currentDay;
+        
+        // Apply the same time zone for all days
+        Object.keys(storageKeys).forEach(day => {
+            if (day !== originalDay) {
+                // Load table data with proper initialization
+                let tableData = JSON.parse(localStorage.getItem(storageKeys[day]) || '{"dropzones":[],"namesContainer":[]}');
+                
+                // Initialize dropzones array if needed
+                if (!Array.isArray(tableData.dropzones)) {
+                    tableData.dropzones = new Array(6).fill().map(() => []);
+                }
+                
+                // Ensure all zones exist
+                while (tableData.dropzones.length < 6) {
+                    tableData.dropzones.push([]);
+                }
+
+                // Remove child from all zones first
+                tableData.dropzones.forEach((zone, idx) => {
+                    if (Array.isArray(zone)) {
+                        const childIndex = zone.findIndex(item => item.id === childId);
+                        if (childIndex !== -1) {
+                            zone.splice(childIndex, 1);
+                        }
+                    }
+                });
+                
+                // Remove from namesContainer if exists
+                if (!Array.isArray(tableData.namesContainer)) {
+                    tableData.namesContainer = [];
+                }
+                
+                const nameContainerIndex = tableData.namesContainer.findIndex(item => item.id === childId);
+                if (nameContainerIndex !== -1) {
+                    tableData.namesContainer.splice(nameContainerIndex, 1);
+                }
+                
+                // Add child to the correct zone
+                // Make sure we're using the exact same index as the original placement
+                tableData.dropzones[zoneIndex].push({...currentChild});
+                
+                // Save updated table data
+                localStorage.setItem(storageKeys[day], JSON.stringify(tableData));
+            }
+        });
+    }
+
+    // Hilfsfunktion: Findet Kindinformationen anhand der ID
+    function findChildInfoById(childId) {
+      // Prüfe aktuelle Tagesdaten
+      const tableData = JSON.parse(localStorage.getItem(storageKeys[currentDay]) || '{"dropzones":[],"namesContainer":[]}');
+      
+      // Suche in den Dropzones
+      for (const zone of tableData.dropzones) {
+        const child = zone.find(item => item.id === childId);
+        if (child) return child;
+      }
+      
+      // Suche im namesContainer
+      if (tableData.namesContainer) {
+        const child = tableData.namesContainer.find(item => item.id === childId);
+        if (child) return child;
+      }
+      
+      return null;
+    }
+
+    // Modify your existing saveTable function
+    function saveTable() {
+        const tableData = {
+            dropzones: [],
+            namesContainer: [],
+            timeSlots: Array.from(document.querySelectorAll('.time-cell')).map(cell => cell.textContent)
+        };
+        
+        // Save Dropzones
+        document.querySelectorAll('.dropzone').forEach(zone => {
+            const names = [];
+            zone.childNodes.forEach(node => {
+                if (node.className && node.className.includes('name')) {
+                    const notes = [];
+                    node.querySelectorAll('.note').forEach(noteElem => {
+                        notes.push(noteElem.textContent);
+                    });
+                    // Remove the checkbox state from being saved
+                    names.push({
+                        id: node.id,
+                        text: node.querySelector('span').textContent,
+                        color: node.style.backgroundColor,
+                        notes: notes
+                        // removed: checked: checkbox.checked
+                    });
+                }
+            });
+            tableData.dropzones.push(names);
+        });
+
+        // Save namesContainer
+        const namesContainer = document.getElementById('namesContainer');
+        namesContainer.childNodes.forEach(node => {
+            if (node.className && node.className.includes('name')) {
+                const notes = [];
+                node.querySelectorAll('.note').forEach(noteElem => {
+                    notes.push(noteElem.textContent);
+                });
+                // Remove the checkbox state from being saved
+                tableData.namesContainer.push({
+                    id: node.id,
+                    text: node.querySelector('span').textContent,
+                    color: node.style.backgroundColor,
+                    notes: notes
+                    // removed: checked: checkbox.checked
+                });
+            }
+        });
+
+        localStorage.setItem(storageKeys[currentDay], JSON.stringify(tableData));
+        
+        if (event && event.type === 'click' && event.target.textContent === 'Speichern') {
+            hasUnsavedChanges = false;
+            alert('Änderungen wurden gespeichert!');
+        }
+    }
+
+    // Modify your existing loadTable function
+    function loadTable() {
+        const tableData = JSON.parse(localStorage.getItem(storageKeys[currentDay]) || 
+            '{"dropzones":[],"namesContainer":[],"timeSlots":[]}');
+        
+        // Load time slots if they exist
+        if (tableData.timeSlots && tableData.timeSlots.length > 0) {
+            const timeCells = document.querySelectorAll('.time-cell');
+            tableData.timeSlots.forEach((time, index) => {
+                if (timeCells[index]) {
+                    timeCells[index].textContent = time;
+                }
+            });
+        }
+        
+        // Lade die Standardzeitzonen
+        const defaultTimeZones = JSON.parse(localStorage.getItem(childTimeZoneKey) || "{}");
+        
+        // Clear and load namesContainer
+        const namesContainer = document.getElementById('namesContainer');
+        namesContainer.innerHTML = '';
+        
+        if (tableData.namesContainer) {
+            // Füge nur Kinder hinzu, die noch nicht in einer Standardzeitzone platziert sind
+            const childrenToAdd = tableData.namesContainer.filter(item => !defaultTimeZones.hasOwnProperty(item.id));
+            // Sort children in namesContainer
+            childrenToAdd.sort((a, b) => a.text.localeCompare(b.text));
+            childrenToAdd.forEach(item => {
+                const nameElem = createNameElement(item);
+                namesContainer.appendChild(nameElem);
+            });
+        }
+        
+        // Clear and load dropzones
+        document.querySelectorAll('.dropzone').forEach((zone, index) => {
+            zone.innerHTML = '';
+            if (tableData.dropzones && tableData.dropzones[index]) {
+                // Sort children in each dropzone
+                const sortedChildren = tableData.dropzones[index].sort((a, b) => 
+                    a.text.localeCompare(b.text)
+                );
+                sortedChildren.forEach(item => {
+                    const nameElem = createNameElement(item);
+                    zone.appendChild(nameElem);
+                });
+            }
+        });
+    }
+
+    // Updated createNameElement function to include photos
+    function createNameElement(item) {
+        const nameElem = document.createElement('div');
+        nameElem.className = 'name';
+        nameElem.draggable = true;
+        nameElem.id = item.id;  // Use the existing ID from the saved data
+        nameElem.ondragstart = drag;
+        nameElem.ondblclick = addOrRemoveNote;
+        nameElem.style.backgroundColor = item.color;
+
+        // Create name content container
+        const nameContent = document.createElement('div');
+        nameContent.className = 'name-content';
+
+        // Check if profile photo exists
+        const profiles = JSON.parse(localStorage.getItem('childProfiles') || '{}');
+        const childProfile = profiles[item.id];
+        
+        // Add photo if it exists
+        if (childProfile && childProfile.photo && !childProfile.photo.includes('svg+xml')) {
+            const photoContainer = document.createElement('div');
+            photoContainer.className = 'name-photo';
+            
+            const img = document.createElement('img');
+            img.src = childProfile.photo;
+            img.alt = 'Kind';
+            
+            photoContainer.appendChild(img);
+            nameContent.appendChild(photoContainer);
+        }
+
+        // Create and add name span
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = item.text;
+        nameContent.appendChild(nameSpan);
+
+        // Check if it's the child's birthday
+        if (childProfile && childProfile.birthDate) {
+            const birthDate = new Date(childProfile.birthDate);
+            const today = new Date();
+            
+            if (birthDate.getDate() === today.getDate() && 
+                birthDate.getMonth() === today.getMonth()) {
+                // Check if birthday indicator already exists before adding a new one
+                if (!nameSpan.querySelector('.birthday-indicator')) {
+                    const birthdayIndicator = document.createElement('span');
+                    birthdayIndicator.textContent = '🎂';
+                    birthdayIndicator.className = 'birthday-indicator';
+                    birthdayIndicator.title = 'Heute ist Geburtstag!';
+                    nameSpan.appendChild(birthdayIndicator);
+                }
+            }
+        }
+
+        // Add the name content container to the name element
+        nameElem.appendChild(nameContent);
+
+        // Add checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'check';
+        checkbox.checked = item.checked;
+        nameElem.appendChild(checkbox);
+
+        // Add notes
+        item.notes.forEach(noteText => {
+            const noteElem = document.createElement('div');
+            noteElem.textContent = noteText;
+            noteElem.className = 'note';
+            nameElem.appendChild(noteElem);
+        });
+
+        return nameElem;
+    }
+
+    function clearTable() {
+      const pass = prompt("Bitte Passwort eingeben, um die Liste zu löschen:");
+      if (pass === "fitim") {
+        document.querySelectorAll('.dropzone').forEach(zone => {
+          while (zone.firstChild) {
+            zone.removeChild(zone.firstChild);
+          }
+        });
+        localStorage.removeItem(storageKeys[currentDay]);
+      } else {
+        alert("Falsches Passwort!");
+      }
+    }
+
+    // Modified employee management functions
+    function loadEmployeesList() {
+        const employeesList = document.getElementById('employeesList');
+        employeesList.innerHTML = '';
+        
+        const employees = JSON.parse(localStorage.getItem('globalEmployees')) || [];
+        const currentButton = document.getElementById(`zuständigButton-${currentZuständigButton}`);
+        const currentEmployees = Array.from(currentButton.querySelectorAll('.selected-employee'))
+            .map(emp => emp.textContent);
+        
+        employees.forEach(employee => {
+            // Hauptcontainer für Mitarbeiter
+            const employeeItem = document.createElement('div');
+            employeeItem.className = 'employee-item';
+            
+            // Container für Hauptinhalt
+            const mainContent = document.createElement('div');
+            mainContent.className = 'employee-main-content';
+            
+            // Lösch-Button (X) - ganz links
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.className = 'employee-delete-btn';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm('Möchten Sie diesen Mitarbeitenden wirklich löschen?')) {
+                    deleteEmployee(employee.id);
+                }
+            };
+            
+            // Leerer Spacer für Abstand
+            const spacer = document.createElement('div');
+            spacer.className = 'employee-spacer';
+            
+            // Name - rechts vor der Checkbox
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'employee-name';
+            nameSpan.textContent = employee.name;
+            
+            // Checkbox - ganz rechts
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'employee-checkbox';
+            checkbox.checked = currentEmployees.includes(employee.name);
+            
+            // Details Container
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'employee-details';
+            detailsContainer.innerHTML = `
+                <div class="detail-item">
+                    <strong>Kontakt:</strong> ${employee.contact || '-'}
+                </div>
+                <div class="detail-item">
+                    <strong>Arbeitszeiten:</strong> ${employee.workHours || '-'}
+                </div>
+                <div class="detail-item">
+                    <strong>Email:</strong> ${employee.email || '-'}
+                </div>
+                <div class="detail-item">
+                    <strong>Benachrichtigungen:</strong> ${employee.receiveNotifications ? 'Aktiviert' : 'Deaktiviert'}
+                </div>
+            `;
+            
+            // Event-Listener für das Aufklappen
+            employeeItem.onclick = (e) => {
+                if (!e.target.matches('.employee-checkbox, .employee-delete-btn')) {
+                    detailsContainer.classList.toggle('visible');
+                }
+            };
+            
+            // Zusammenbau der Elemente
+            mainContent.appendChild(deleteBtn);
+            mainContent.appendChild(spacer);
+            mainContent.appendChild(nameSpan);
+            mainContent.appendChild(checkbox);
+            employeeItem.appendChild(mainContent);
+            employeeItem.appendChild(detailsContainer);
+            employeesList.appendChild(employeeItem);
+        });
+
+        // Zuweisen-Button am Ende
+        const assignButtonContainer = document.createElement('div');
+        assignButtonContainer.className = 'assign-button-container';
+        const assignButton = document.createElement('button');
+        assignButton.textContent = 'Zuweisen';
+        assignButton.onclick = assignSelectedEmployees;
+        assignButtonContainer.appendChild(assignButton);
+        employeesList.appendChild(assignButtonContainer);
+    }
+
+    // Function to delete an employee
+    function deleteEmployee(employeeId) {
+        const storageKey = 'globalEmployees';
+        let employees = JSON.parse(localStorage.getItem(storageKey)) || [];
+        employees = employees.filter(emp => emp.id !== employeeId);
+        localStorage.setItem(storageKey, JSON.stringify(employees));
+        
+        // Refresh the employee list
+        loadEmployeesList();
+        
+        // Update global employees
+        loadGlobalEmployees();
+    }
+
+    function loadGlobalEmployees() {
+      const storageKey = 'globalEmployees';
+      const stored = localStorage.getItem(storageKey);
+      globalEmployees = stored ? JSON.parse(stored) : [];
+    }
+
+    document.getElementById('exportButton').addEventListener('click', function() {
+      const data = {
+        days: {},
+        childProfiles: JSON.parse(localStorage.getItem('childProfiles') || '{}'),
+        globalEmployees: JSON.parse(localStorage.getItem('globalEmployees') || '[]'),
+        childDefaultTimeZones: JSON.parse(localStorage.getItem(childTimeZoneKey) || '{}'),
+        assignedEmployees: JSON.parse(localStorage.getItem('assignedEmployees') || '{}')
+      };
+      
+      // Add day-specific data
+      for (const key in storageKeys) {
+        data.days[key] = JSON.parse(localStorage.getItem(storageKeys[key])) || [];
+      }
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'abholliste.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('importButton').addEventListener('click', function() {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (confirm('Möchten Sie die vorhandenen Daten überschreiben?')) {
+              // Handle day-specific data if structured with 'days' property (new format)
+              if (importedData.days) {
+                for (const key in importedData.days) {
+                  localStorage.setItem(storageKeys[key], JSON.stringify(importedData.days[key]));
+                }
+                
+                // Import child profiles if present
+                if (importedData.childProfiles) {
+                  localStorage.setItem('childProfiles', JSON.stringify(importedData.childProfiles));
+                }
+                
+                // Import employee data if present
+                if (importedData.globalEmployees) {
+                  localStorage.setItem('globalEmployees', JSON.stringify(importedData.globalEmployees));
+                }
+                
+                // Import child default time zones if present
+                if (importedData.childDefaultTimeZones) {
+                  localStorage.setItem(childTimeZoneKey, JSON.stringify(importedData.childDefaultTimeZones));
+                }
+                
+                // Import assigned employees if present
+                if (importedData.assignedEmployees) {
+                  localStorage.setItem('assignedEmployees', JSON.stringify(importedData.assignedEmployees));
+                }
+              } else {
+                // Handle old format for backwards compatibility
+                for (const key in importedData) {
+                  localStorage.setItem(storageKeys[key], JSON.stringify(importedData[key]));
+                }
+              }
+              
+              location.reload();
+            }
+          } catch (error) {
+            console.error('Import error:', error);
+            alert('Fehler beim Import der Datei!');
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Add print button event listener
+    document.getElementById('printButton').addEventListener('click', function() {
+        window.print();
+    });
+
+    // Photo management functions
+    document.getElementById('photoUpload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('childPhoto').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Handle take picture button - activates camera on mobile devices
+    document.getElementById('takePicture').addEventListener('click', function() {
+        // Create an input element for photo capture if supported
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'camera'; // Use device camera
+        
+        input.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('childPhoto').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        input.click(); // Trigger file selection
+    });
+
+    // Handle remove photo button
+    document.getElementById('removePhoto').addEventListener('click', function() {
+        // Reset to default placeholder image
+        document.getElementById('childPhoto').src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='25' fill='%23ccc'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%23ccc'/%3E%3C/svg%3E";
+    });
+
+    // Update the saveProfile function to preserve QR code data
+    function saveProfile() {
+        if (currentNoteElement) {
+            const childId = currentNoteElement.id;
+            
+            // Load existing profile data to preserve QR code data
+            const profiles = JSON.parse(localStorage.getItem('childProfiles') || '{}');
+            const existingProfileData = profiles[childId] || {};
+            
+            // Create updated profile data, preserving QR data if it exists
+            const profileData = {
+                birthDate: document.getElementById('birthDate').value,
+                allergies: document.getElementById('allergies').value,
+                contact: document.getElementById('contact').value,
+                photo: document.getElementById('childPhoto').src,
+                // Preserve existing QR data
+                qrData: existingProfileData.qrData || null
+            };
+            
+            // Save profile data to localStorage
+            profiles[childId] = profileData;
+            localStorage.setItem('childProfiles', JSON.stringify(profiles));
+            
+            // Update the child's name element if it has a photo
+            if (profileData.photo && !profileData.photo.includes('svg+xml')) {
+                updateChildPhoto(childId, profileData.photo);
+            }
+        }
+    }
+
+    // Function to update a child's photo in the UI
+    function updateChildPhoto(childId, photoSrc) {
+        const childElement = document.getElementById(childId);
+        if (childElement) {
+            // Check if photo container already exists
+            let photoContainer = childElement.querySelector('.name-photo');
+            
+            if (!photoContainer) {
+                // Create new photo container and add it before the name span
+                photoContainer = document.createElement('div');
+                photoContainer.className = 'name-photo';
+                
+                const img = document.createElement('img');
+                img.src = photoSrc;
+                img.alt = 'Kind';
+                
+                photoContainer.appendChild(img);
+                
+                // Get the name span
+                const nameSpan = childElement.querySelector('span');
+                
+                // Create name content container if it doesn't exist
+                let nameContent = childElement.querySelector('.name-content');
+                if (!nameContent) {
+                    nameContent = document.createElement('div');
+                    nameContent.className = 'name-content';
+                    
+                    // Move the name span into the name content container
+                    if (nameSpan.parentNode === childElement) {
+                        childElement.removeChild(nameSpan);
+                        nameContent.appendChild(photoContainer);
+                        nameContent.appendChild(nameSpan);
+                        childElement.insertBefore(nameContent, childElement.firstChild);
+                    }
+                } else {
+                    // Just add the photo container before the name span in the existing content container
+                    nameContent.insertBefore(photoContainer, nameSpan);
+                }
+            } else {
+                // Just update the existing photo
+                const img = photoContainer.querySelector('img');
+                if (img) {
+                    img.src = photoSrc;
+                }
+            }
+        }
+    }
+
+    // Add to your script section
+    function clearAllData() {
+        const pass = prompt("Bitte Passwort eingeben, um ALLE Daten zu löschen:");
+        if (pass === "fitim") {
+            if (confirm("WARNUNG: Dies löscht alle Daten unwiderruflich! Fortfahren?")) {
+                // Clear all table data
+                Object.values(storageKeys).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                // Clear profiles
+                localStorage.removeItem('childProfiles');
+                
+                // Clear employees
+                localStorage.removeItem('globalEmployees');
+                globalEmployees = [];
+                
+                // Clear theme setting
+                localStorage.removeItem('theme');
+                
+                // Reset the UI
+                document.querySelectorAll('.dropzone').forEach(zone => {
+                    while (zone.firstChild) {
+                        zone.removeChild(zone.firstChild);
+                    }
+                });
+                
+                document.querySelector('h1').textContent = 'Abholliste - Montag';
+                document.querySelectorAll('.zuständig-button').forEach(btn => {
+                    btn.innerHTML = 'Zuständig';
+                });
+                
+                // Reset theme to light
+                setTheme('light');
+                
+                // Clear names container
+                document.getElementById('namesContainer').innerHTML = '';
+                
+                alert("Alle Daten wurden gelöscht!");
+                
+                // Reload the page to reset everything
+                window.location.reload();
+            }
+        } else {
+            alert("Falsches Passwort!");
+        }
+    }
+
+    // Add event listener for the trash button
+    document.getElementById('trashButton').addEventListener('click', clearAllData);
+
+    // Event Listener für den Speichern-Button
+    document.querySelector('button[onclick="saveTable()"]').onclick = function(event) {
+        saveTable();
+        hasUnsavedChanges = false;
+        originalTableData = JSON.parse(localStorage.getItem(storageKeys[currentDay]) || '{"dropzones":[],"namesContainer":[]}');
+    };
+
+    // Event Listener für das Verlassen der Seite
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'Es gibt ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen?';
+            return e.returnValue;
+        }
+    });
+
+    // Modified to add password protection and control time buttons visibility
+    function toggleCollapse(button) {
+        const content = button.nextElementSibling;
+        const isCollapsed = !content.classList.contains('expanded');
+        const timeControls = document.querySelector('.time-controls');
+        
+        // Wenn der Bereich geöffnet werden soll, nach Passwort fragen
+        if (isCollapsed) {
+            const password = prompt("Bitte Passwort eingeben, um das Menü zu öffnen:");
+            if (password !== "fitim") {
+                alert("Falsches Passwort!");
+                isAuthenticated = false;
+                timeControls.style.display = 'none';
+                return;
+            }
+            // Password is correct, show time buttons
+            isAuthenticated = true;
+            timeControls.style.display = 'block';
+        } else {
+            // Menu is being collapsed, hide time buttons
+            isAuthenticated = false;
+            timeControls.style.display = 'none';
+        }
+        
+        // Toggle UI-Zustand nach erfolgreicher Passwortprüfung
+        button.classList.toggle('collapsed');
+        content.classList.toggle('expanded');
+        
+        // Save state to localStorage
+        localStorage.setItem('controlPanelCollapsed', button.classList.contains('collapsed'));
+    }
+
+    function openEmployeeModal() {
+        document.getElementById('employeeModal').classList.add('active');
+    }
+
+    function closeEmployeeModal() {
+        document.getElementById('employeeModal').classList.remove('active');
+    }
+
+    // Add this function to handle showing the employee list
+    function showEmployeeList(columnIndex) {
+        currentZuständigButton = columnIndex; // Store current column
+        openEmployeeModal();
+        loadEmployeesList(); // Refresh employee list
+    }
+
+    // Update the employee modal functions
+    function openEmployeeModal() {
+        const modal = document.getElementById('employeeModal');
+        modal.classList.add('active');
+    }
+
+    function closeEmployeeModal() {
+        const modal = document.getElementById('employeeModal');
+        modal.classList.remove('active');
+        currentZuständigButton = null; // Reset current button
+    }
+
+    // Improve employee list loading
+    function loadEmployeesList() {
+        const employeesList = document.getElementById('employeesList');
+        employeesList.innerHTML = '';
+        
+        const employees = JSON.parse(localStorage.getItem('globalEmployees')) || [];
+        const currentButton = document.getElementById(`zuständigButton-${currentZuständigButton}`);
+        const currentEmployees = Array.from(currentButton.querySelectorAll('.selected-employee'))
+            .map(emp => emp.textContent);
+        
+        employees.forEach(employee => {
+            // Hauptcontainer für Mitarbeiter
+            const employeeItem = document.createElement('div');
+            employeeItem.className = 'employee-item';
+            
+            // Container für Hauptinhalt
+            const mainContent = document.createElement('div');
+            mainContent.className = 'employee-main-content';
+            
+            // Lösch-Button (X) - ganz links
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.className = 'employee-delete-btn';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm('Möchten Sie diesen Mitarbeitenden wirklich löschen?')) {
+                    deleteEmployee(employee.id);
+                }
+            };
+            
+            // Leerer Spacer für Abstand
+            const spacer = document.createElement('div');
+            spacer.className = 'employee-spacer';
+            
+            // Name - rechts vor der Checkbox
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'employee-name';
+            nameSpan.textContent = employee.name;
+            
+            // Checkbox - ganz rechts
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'employee-checkbox';
+            checkbox.checked = currentEmployees.includes(employee.name);
+            
+            // Details Container
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'employee-details';
+            detailsContainer.innerHTML = `
+                <div class="detail-item">
+                    <strong>Kontakt:</strong> ${employee.contact || '-'}
+                </div>
+                <div class="detail-item">
+                    <strong>Arbeitszeiten:</strong> ${employee.workHours || '-'}
+                </div>
+            `;
+            
+            // Event-Listener für das Aufklappen
+            employeeItem.onclick = (e) => {
+                if (!e.target.matches('.employee-checkbox, .employee-delete-btn')) {
+                    detailsContainer.classList.toggle('visible');
+                }
+            };
+            
+            // Zusammenbau der Elemente
+            mainContent.appendChild(deleteBtn);
+            mainContent.appendChild(spacer);
+            mainContent.appendChild(nameSpan);
+            mainContent.appendChild(checkbox);
+            employeeItem.appendChild(mainContent);
+            employeeItem.appendChild(detailsContainer);
+            employeesList.appendChild(employeeItem);
+        });
+
+        // Zuweisen-Button am Ende
+        const assignButtonContainer = document.createElement('div');
+        assignButtonContainer.className = 'assign-button-container';
+        const assignButton = document.createElement('button');
+        assignButton.textContent = 'Zuweisen';
+        assignButton.onclick = assignSelectedEmployees;
+        assignButtonContainer.appendChild(assignButton);
+        employeesList.appendChild(assignButtonContainer);
+    }
+
+    function searchChild() {
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const names = document.querySelectorAll('.name span');
+
+        names.forEach(nameElem => {
+            const nameText = nameElem.textContent.toLowerCase();
+            const nameContainer = nameElem.closest('.name');
+            if (nameText.includes(searchInput)) {
+                nameContainer.style.display = '';
+            } else {
+                nameContainer.style.display = 'none';
+            }
+        });
+    }
+
+    // Update the addEmployee function to include contact, work hours, email and notification preferences
+    function addEmployee() {
+        const employeeName = document.getElementById('employeeName').value.trim();
+        const employeeContact = document.getElementById('employeeContact').value.trim();
+        const employeeWorkHours = document.getElementById('employeeWorkHours').value.trim();
+        const employeeEmail = document.getElementById('employeeEmail').value.trim();
+        const employeeNotify = document.getElementById('employeeNotify').checked;
+        
+        if (employeeName !== '') {
+            const storageKey = 'globalEmployees';
+            const employees = JSON.parse(localStorage.getItem(storageKey)) || [];
+            
+            if (employees.some(emp => emp.name === employeeName)) {
+                alert("Dieser Mitarbeitende existiert bereits!");
+                return;
+            }
+            
+            const newEmployee = {
+                id: 'Mitarbeitenden-' + Date.now(),
+                name: employeeName,
+                contact: employeeContact,
+                workHours: employeeWorkHours,
+                email: employeeEmail,
+                receiveNotifications: employeeNotify
+            };
+            
+            employees.push(newEmployee);
+            localStorage.setItem(storageKey, JSON.stringify(employees));
+            
+            // Clear input fields
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeeContact').value = '';
+            document.getElementById('employeeWorkHours').value = '';
+            document.getElementById('employeeEmail').value = '';
+            document.getElementById('employeeNotify').checked = true;
+            
+            loadEmployeesList();
+        }
+    }
+
+    // Add this function to sort children alphabetically
+    function sortChildrenAlphabetically(zone) {
+        const children = Array.from(zone.children);
+        children.sort((a, b) => {
+            const nameA = a.querySelector('span').textContent.toLowerCase();
+            const nameB = b.querySelector('span').textContent.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        
+        // Remove all children
+        while (zone.firstChild) {
+            zone.removeChild(zone.firstChild);
+        }
+        
+        // Add back in sorted order
+        children.forEach(child => zone.appendChild(child));
+    }
+
+    // Add to your existing script section
+
+    // Store times in localStorage
+    function saveTimeSlots() {
+        const times = Array.from(document.querySelectorAll('.time-cell'))
+            .map(cell => cell.textContent);
+        localStorage.setItem('timeSlots', JSON.stringify(times));
+    }
+
+    // Load times from localStorage
+    function loadTimeSlots() {
+        const savedTimes = localStorage.getItem('timeSlots');
+        if (savedTimes) {
+            const times = JSON.parse(savedTimes);
+            const timeCells = document.querySelectorAll('.time-cell');
+            times.forEach((time, index) => {
+                if (timeCells[index]) {
+                    timeCells[index].textContent = time;
+                }
+            });
+        }
+    }
+
+    // Edit time slot
+    function editTime(cell) {
+        const currentTime = cell.textContent;
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.className = 'time-edit';
+        input.value = currentTime;
+        
+        input.onblur = function() {
+            cell.textContent = this.value;
+            saveTimeSlots();
+        };
+        
+        input.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                cell.textContent = this.value;
+                saveTimeSlots();
+            }
+        };
+        
+        cell.textContent = '';
+        cell.appendChild(input);
+        input.focus();
+    }
+
+    // Add new time slot
+    function addTimeSlot() {
+        const table = document.querySelector('table');
+        const headerRow = table.querySelector('tr:first-child');
+        const timeRow = table.querySelector('tr:nth-child(2)');
+        const dataRow = table.querySelector('tbody tr');
+        
+        // Add new header for employee
+        const newHeader = document.createElement('th');
+        newHeader.id = `zuständigButton-${headerRow.children.length}`;
+        newHeader.onclick = () => showEmployeeList(headerRow.children.length);
+        newHeader.className = 'zuständig-button';
+        newHeader.textContent = 'Zuständig';
+        headerRow.appendChild(newHeader);
+        
+        // Add new time cell
+        const newTimeCell = document.createElement('th');
+        newTimeCell.className = 'time-cell';
+        newTimeCell.ondblclick = function() { editTime(this); };
+        newTimeCell.textContent = '00:00';
+        timeRow.appendChild(newTimeCell);
+        
+        // Add new dropzone
+        const newDropzone = document.createElement('td');
+        newDropzone.className = 'dropzone';
+        newDropzone.ondragover = (e) => e.preventDefault();
+        newDropzone.ondrop = (e) => handleDrop(e);
+        dataRow.appendChild(newDropzone);
+        
+        saveTimeSlots();
+    }
+
+    // Remove last time slot
+    function removeTimeSlot() {
+        if (document.querySelectorAll('.time-cell').length <= 1) {
+            alert('Mindestens eine Zeitslot muss bleiben!');
+            return;
+        }
+        
+        const table = document.querySelector('table');
+        const headerRow = table.querySelector('tr:first-child');
+        const timeRow = table.querySelector('tr:nth-child(2)');
+        const dataRow = table.querySelector('tbody tr');
+        
+        // Remove cells
+        headerRow.lastElementChild.remove();
+        timeRow.lastElementChild.remove();
+        dataRow.lastElementChild.remove();
+        
+        saveTimeSlots();
+    }
+
+    // Add to your window.onload or initialization code
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTimeSlots();
+        
+        // Check if theme was previously set
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        }
+        
+        // Set up email test button if admin view is enabled
+        if (isAuthenticated) {
+            setupEmailTestButton();
+        }
+    });
+    
+    // Function to set up email test button
+    function setupEmailTestButton() {
+        // Add a test button to verify email functionality
+        const buttonContainer = document.querySelector('.button-container');
+        if (buttonContainer) {
+            const testButton = document.createElement('button');
+            testButton.id = 'emailTestButton';
+            testButton.textContent = 'Email-Test';
+            testButton.title = 'Test die Email-Benachrichtigungen';
+            testButton.style.backgroundColor = '#5bc0de';
+            testButton.onclick = testEmailNotification;
+            buttonContainer.appendChild(testButton);
+        }
+    }
+    
+    // Email Queue System Functions
+    
+    // Load email queue from localStorage
+    function loadEmailQueue() {
+        const savedQueue = localStorage.getItem('emailQueue');
+        if (savedQueue) {
+            emailQueue = JSON.parse(savedQueue);
+            updateEmailQueueBadge();
+        }
+    }
+    
+    // Save email queue to localStorage
+    function saveEmailQueue() {
+        localStorage.setItem('emailQueue', JSON.stringify(emailQueue));
+        updateEmailQueueBadge();
+    }
+    
+    // Update the email queue badge count
+    function updateEmailQueueBadge() {
+        const badge = document.getElementById('emailQueueBadge');
+        if (badge) {
+            badge.textContent = emailQueue.length;
+            // Hide badge if queue is empty
+            badge.style.display = emailQueue.length > 0 ? 'flex' : 'none';
+        }
+    }
+    
+    // Open email queue modal
+    function openEmailQueueModal() {
+        const modal = document.getElementById('emailQueueModal');
+        if (modal) {
+            renderEmailQueue();
+            modal.classList.add('active');
+        }
+    }
+    
+    // Close email queue modal
+    function closeEmailQueueModal() {
+        const modal = document.getElementById('emailQueueModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+    
+    // Add email to queue
+    function addEmailToQueue(toEmail, subject, body) {
+        emailQueue.push({
+            id: Date.now(), // Unique ID for the email
+            toEmail: toEmail,
+            subject: subject,
+            body: body,
+            timestamp: new Date().toISOString()
+        });
+        
+        saveEmailQueue();
+        
+        // Check preferences and take action based on settings
+        if (emailPreferences.autoOpenEmailClient) {
+            // Automatically open email client with this email
+            openEmailClient(toEmail, subject, body);
+        } else if (emailPreferences.autoShowEmailQueue) {
+            // Open email queue modal
+            openEmailQueueModal();
+        }
+        // Alert messages removed as requested
+    }
+    
+    // Save email preferences
+    function saveEmailPreferences() {
+        emailPreferences.autoOpenEmailClient = document.getElementById('autoOpenEmailClient').checked;
+        emailPreferences.autoShowEmailQueue = document.getElementById('autoShowEmailQueue').checked;
+        
+        // Save to localStorage
+        localStorage.setItem('emailPreferences', JSON.stringify(emailPreferences));
+        
+        alert('Email-Einstellungen wurden gespeichert.');
+    }
+    
+    // Render emails in the queue
+    function renderEmailQueue() {
+        const queueList = document.getElementById('emailQueueList');
+        if (!queueList) return;
+        
+        // Clear current list
+        queueList.innerHTML = '';
+        
+        if (emailQueue.length === 0) {
+            queueList.innerHTML = '<div style="padding: 20px; text-align: center;">Keine E-Mails in der Warteschlange</div>';
+            return;
+        }
+        
+        // Add each email to the list
+        emailQueue.forEach(email => {
+            const item = document.createElement('div');
+            item.className = 'email-queue-item';
+            
+            // Extract recipient name from email body if possible
+            let recipientName = 'Empfänger';
+            const nameMatch = email.body.match(/Hallo ([^,\n]+),/);
+            if (nameMatch && nameMatch[1]) {
+                recipientName = nameMatch[1];
+            }
+            
+            // Format timestamp
+            const date = new Date(email.timestamp);
+            const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+            
+            item.innerHTML = `
+                <div>
+                    <strong>${recipientName}</strong><br>
+                    <small>${email.toEmail}</small><br>
+                    <small>${email.subject}</small><br>
+                    <small>Hinzugefügt: ${formattedDate}</small>
+                </div>
+                <div>
+                    <button onclick="sendQueuedEmail(${email.id})" class="camera-btn" style="margin-right: 5px;">Senden</button>
+                    <button onclick="removeFromQueue(${email.id})" class="remove-btn">❌</button>
+                </div>
+            `;
+            
+            queueList.appendChild(item);
+        });
+    }
+    
+    // Send a single queued email
+    function sendQueuedEmail(emailId) {
+        const email = emailQueue.find(e => e.id === emailId);
+        if (!email) return;
+        
+        // Open email client
+        openEmailClient(email.toEmail, email.subject, email.body);
+        
+        // Remove from queue
+        removeFromQueue(emailId);
+        
+        // Close modal if queue is empty
+        if (emailQueue.length === 0) {
+            closeEmailQueueModal();
+        } else {
+            // Refresh the queue display
+            renderEmailQueue();
+        }
+    }
+    
+    // Remove email from queue
+    function removeFromQueue(emailId) {
+        emailQueue = emailQueue.filter(e => e.id !== emailId);
+        saveEmailQueue();
+        renderEmailQueue();
+    }
+    
+    // Send all emails in queue
+    function sendAllEmails() {
+        if (emailQueue.length === 0) {
+            alert('Keine E-Mails in der Warteschlange');
+            return;
+        }
+        
+        const confirmSend = confirm(`Möchten Sie alle ${emailQueue.length} E-Mails senden?`);
+        if (!confirmSend) return;
+        
+        // Get all email addresses
+        const allEmails = emailQueue.map(e => e.toEmail);
+        
+        // Use first email as template
+        const firstEmail = emailQueue[0];
+        
+        // Create a consolidated email with all recipients in To field
+        // This puts all recipients in the TO field instead of BCC
+        openEmailClient(allEmails.join(','), firstEmail.subject, firstEmail.body);
+        
+        // Clear the queue
+        clearEmailQueue();
+        closeEmailQueueModal();
+    }
+    
+    // Clear all emails from queue
+    function clearEmailQueue() {
+        if (emailQueue.length === 0) return;
+        
+        const confirmClear = confirm('Möchten Sie wirklich alle E-Mails aus der Warteschlange entfernen?');
+        if (confirmClear) {
+            emailQueue = [];
+            saveEmailQueue();
+            renderEmailQueue();
+        }
+    }
+    
+    // Helper function to open the default email client
+    function openEmailClient(toEmail, subject, body, bccRecipients) {
+        // Encode the email parameters properly for the mailto protocol
+        const encodedSubject = encodeURIComponent(subject);
+        const encodedBody = encodeURIComponent(body);
+        
+        // Create mailto URL
+        let mailtoUrl = `mailto:${toEmail}?subject=${encodedSubject}&body=${encodedBody}`;
+        
+        // Add BCC recipients if provided
+        if (bccRecipients) {
+            mailtoUrl += `&bcc=${encodeURIComponent(bccRecipients)}`;
+        }
+        
+        // Open the email client
+        window.location.href = mailtoUrl;
+    }
+
+    // Function to test email notification
+    function testEmailNotification() {
+        // Get employees with email notification enabled
+        const employees = JSON.parse(localStorage.getItem('globalEmployees')) || [];
+        const eligibleEmployees = employees.filter(emp => emp.email && emp.receiveNotifications);
+        
+        if (eligibleEmployees.length === 0) {
+            alert('Keine Mitarbeitenden mit aktivierten Email-Benachrichtigungen gefunden.');
+            return;
+        }
+        
+        // Create a test dialog
+        const testEmployee = eligibleEmployees[0]; // Use the first eligible employee
+        const testResult = confirm(`Test-Email senden an ${testEmployee.name} (${testEmployee.email})?`);
+        
+        if (testResult) {
+            // Create email content
+            const subject = `Abholliste: Test-Benachrichtigung`;
+            const body = `Hallo ${testEmployee.name},\n\n` +
+                  `Dies ist eine Test-Benachrichtigung aus der Abholliste-App.\n\n` +
+                  `Tag: ${currentDay}\n` +
+                  `Zeit: TEST\n` +
+                  `Kinder: Dies ist eine Test-Benachrichtigung\n` +
+                  `Ort: Eingang/Abholbereich\n\n` +
+                  `Mit freundlichen Grüßen,\n` +
+                  `Abholliste-App`;
+            
+            // Add to queue instead of opening email client directly
+            addEmailToQueue(testEmployee.email, subject, body);
+        }
+    }
+
+    // Function to send notification emails to staff members
+    function sendNotificationEmail(employee, timeSlot, dayName, childrenList) {
+        // Check if employee has email and wants notifications
+        if (!employee.email || !employee.receiveNotifications) {
+            console.log(`Skipping notification for ${employee.name}: email=${employee.email}, notifications=${employee.receiveNotifications}`);
+            return;
+        }
+        
+        // Create email content
+        const subject = `Abholliste: Zuständigkeit für ${dayName} um ${timeSlot}`;
+        const body = `Hallo ${employee.name},\n\n` +
+                  `Sie wurden als zuständige Person für die Abholung eingeteilt:\n\n` +
+                  `Tag: ${dayName}\n` +
+                  `Zeit: ${timeSlot}\n` +
+                  `Kinder: ${childrenList || 'Keine Kinder zugewiesen'}\n` +
+                  `Ort: Eingang/Abholbereich\n\n` +
+                  `Bitte seien Sie zu dieser Zeit am angegebenen Ort.\n\n` +
+                  `Mit freundlichen Grüßen,\n` +
+                  `Abholliste-App`;
+        
+        // Log the notification being sent
+        console.log(`E-Mail-Benachrichtigung für ${employee.name} (${employee.email}) für ${dayName} um ${timeSlot} zur Warteschlange hinzugefügt`);
+        console.log(`Zugewiesene Kinder: ${childrenList || 'Keine'}`);
+        
+        // Add to queue instead of opening email client directly
+        addEmailToQueue(employee.email, subject, body);
+    }
+    
+    // Helper function to get time slot index
+    function getTimeSlotIndex(timeText) {
+        const timeCells = document.querySelectorAll('.time-cell');
+        for (let i = 0; i < timeCells.length; i++) {
+            if (timeCells[i].textContent === timeText) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    // Add initialization of email queue and preferences
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize existing features
+        loadTimeSlots();
+        
+        // Check if theme was previously set
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        }
+        
+        // Initialize email queue
+        loadEmailQueue();
+        
+        // Load email preferences
+        const savedPreferences = localStorage.getItem('emailPreferences');
+        if (savedPreferences) {
+            try {
+                emailPreferences = JSON.parse(savedPreferences);
+                
+                // Update checkboxes when modal is opened
+                document.getElementById('autoOpenEmailClient').checked = emailPreferences.autoOpenEmailClient;
+                document.getElementById('autoShowEmailQueue').checked = emailPreferences.autoShowEmailQueue;
+            } catch (e) {
+                console.error("Error loading email preferences:", e);
+            }
+        }
+        
+        // Set up email test button if admin view is enabled
+        if (isAuthenticated) {
+            setupEmailTestButton();
+        }
+        
+        // Add event listeners for email queue modal
+        const emailQueueModal = document.getElementById('emailQueueModal');
+        if (emailQueueModal) {
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === emailQueueModal) {
+                    closeEmailQueueModal();
+                }
+            });
+            
+            // Close modal when clicking the X button
+            const closeBtn = emailQueueModal.querySelector('.close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeEmailQueueModal);
+            }
+        }
+        
+        // Load assigned employees and display notification button
+        loadAssignedEmployeesWithNotifyButton();
+    });
+    
+    // Weist ausgewählte Mitarbeiter einer Spalte zu und sendet Benachrichtigungen
+    function assignSelectedEmployees() {
+    if (currentZuständigButton === null) {
+        console.error('No column selected');
+        return;
+    }
+
+    try {
+        const selectedEmployeeItems = Array.from(document.querySelectorAll('.employee-item'))
+            .filter(item => item.querySelector('.employee-checkbox:checked'));
+
+        const button = document.getElementById(`zuständigButton-${currentZuständigButton}`);
+        if (!button) {
+            console.error(`Button not found for column ${currentZuständigButton}`);
+            return;
+        }
+
+        // Get time slot for this column
+        const timeSlot = document.querySelectorAll('.time-cell')[currentZuständigButton - 1]?.textContent;
+
+        // Get children assigned to this time slot
+        const dropzone = document.querySelectorAll('.dropzone')[currentZuständigButton - 1];
+        const children = Array.from(dropzone?.querySelectorAll('.name') || [])
+            .map(child => child.querySelector('span').textContent)
+            .join(', ');
+
+        if (selectedEmployeeItems.length === 0) {
+            button.innerHTML = 'Zuständig';
+            
+            const assignedEmployees = JSON.parse(localStorage.getItem('assignedEmployees') || '{}');
+            delete assignedEmployees[`column-${currentZuständigButton}`];
+            localStorage.setItem('assignedEmployees', JSON.stringify(assignedEmployees));
+        } else {
+            const selectedEmployees = selectedEmployeeItems
+                .map(item => {
+                    const nameSpan = item.querySelector('.employee-main-content .employee-name');
+                    return nameSpan ? nameSpan.textContent.trim() : null;
+                })
+                .filter(name => name !== null);
+
+            button.innerHTML = selectedEmployees
+                .map(name => `<div class="selected-employee">${name}</div>`)
+                .join('');
+
+            // Update localStorage
+            const assignedEmployees = JSON.parse(localStorage.getItem('assignedEmployees') || '{}');
+            assignedEmployees[`column-${currentZuständigButton}`] = selectedEmployees;
+            localStorage.setItem('assignedEmployees', JSON.stringify(assignedEmployees));
+
+            // Send notifications to newly assigned employees
+            const allEmployees = JSON.parse(localStorage.getItem('globalEmployees') || '[]');
+            selectedEmployees.forEach(employeeName => {
+                const employee = allEmployees.find(emp => emp.name === employeeName);
+                if (employee && employee.email && employee.receiveNotifications) {
+                    sendNotificationEmail(employee, timeSlot, currentDay, children);
+                }
+            });
+        }
+
+        closeEmployeeModal();
+        
+    } catch (error) {
+        console.error('Error in assignSelectedEmployees:', error);
+        alert('Ein Fehler ist aufgetreten bei der Zuweisung der Mitarbeitenden');
+    }
+}
+
+
+    // QR Code Scanner and Generator Functions
+    let videoElement;
+    let canvasElement;
+    let canvasContext;
+    let scanIntervalId;
+    
+    // Add event listener for QR code image upload
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrFileInput = document.getElementById('qr-file-input');
+        if (qrFileInput) {
+            qrFileInput.addEventListener('change', handleQRImageUpload);
+        }
+    });
+    
+    // Function to handle uploaded QR code images
+    function handleQRImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                // Create canvas for QR code detection if it doesn't exist
+                if (!canvasElement) {
+                    canvasElement = document.createElement('canvas');
+                    canvasContext = canvasElement.getContext('2d');
+                }
+                
+                // Set canvas size to match image
+                canvasElement.width = img.width;
+                canvasElement.height = img.height;
+                
+                // Draw image to canvas
+                canvasContext.drawImage(img, 0, 0, img.width, img.height);
+                
+                // Get image data for QR code detection
+                const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                
+                // Detect QR code
+                try {
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+                    
+                    if (code) {
+                        // QR code found in image!
+                        console.log("QR Code detected in image:", code.data);
+                        processQrCodeResult(code.data);
+                    } else {
+                        // No QR code found
+                        document.getElementById('scan-result').innerHTML = 
+                            '<span style="color: red;">Kein QR-Code im Bild gefunden. Bitte versuchen Sie ein anderes Bild.</span>';
+                    }
+                } catch (err) {
+                    console.error("QR scanning error:", err);
+                    document.getElementById('scan-result').innerHTML = 
+                        '<span style="color: red;">Fehler beim Scannen des Bildes: ' + err.message + '</span>';
+                }
+            };
+            
+            // Load the image from the FileReader result
+            img.src = e.target.result;
+        };
+        
+        // Read the uploaded file as a data URL
+        reader.readAsDataURL(file);
+        
+        // Reset the input so the same file can be selected again
+        event.target.value = '';
+    }
+    
+    // Function to enumerate available video devices
+    async function listVideoDevices() {
+        try {
+            // Try to get devices without requesting permissions first
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            
+            // If we have device labels, we can proceed (user has already granted permission)
+            const hasLabels = videoDevices.some(device => device.label);
+            
+            // If no labels, we need to request permissions first
+            if (!hasLabels && videoDevices.length > 0) {
+                try {
+                    // Request temporary access to get labels
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    // Stop the stream immediately
+                    stream.getTracks().forEach(track => track.stop());
+                    // Get updated devices with labels
+                    const updatedDevices = await navigator.mediaDevices.enumerateDevices();
+                    const updatedVideoDevices = updatedDevices.filter(device => device.kind === 'videoinput');
+                    return updatedVideoDevices;
+                } catch (err) {
+                    console.error("Error requesting initial permissions:", err);
+                    return videoDevices; // Return without labels if permission denied
+                }
+            }
+            
+            return videoDevices;
+        } catch (err) {
+            console.error("Error listing video devices:", err);
+            return [];
+        }
+    }
+
+    // Function to create device selection dropdown
+    function createDeviceSelector(videoDevices) {
+        // Add device selection dropdown if multiple devices available
+        const scannerContainer = document.querySelector('.scanner-container');
+        const existingSelector = document.getElementById('device-select-container');
+        
+        if (existingSelector) {
+            existingSelector.remove();
+        }
+        
+        if (videoDevices.length > 1) {
+            const deviceSelectContainer = document.createElement('div');
+            deviceSelectContainer.id = 'device-select-container';
+            deviceSelectContainer.style.margin = '10px 0';
+            
+            deviceSelectContainer.innerHTML = `
+                <label for="camera-select">Kamera auswählen:</label>
+                <select id="camera-select" style="margin-left: 10px; padding: 5px;">
+                    ${videoDevices.map((device, idx) => 
+                        `<option value="${device.deviceId}">${device.label || `Kamera ${idx + 1}`}</option>`
+                    ).join('')}
+                </select>
+            `;
+            
+            // Add after video element
+            const videoElement = document.getElementById('scanner-video');
+            if (videoElement && videoElement.parentNode) {
+                videoElement.parentNode.insertBefore(deviceSelectContainer, videoElement.nextSibling);
+                
+                // Add event listener to device select
+                const cameraSelect = document.getElementById('camera-select');
+                if (cameraSelect) {
+                    cameraSelect.addEventListener('change', () => {
+                        // Restart scanning with new device
+                        startScanning();
+                    });
+                }
+            }
+        }
+    }
+    
+    // Function to open the scanner modal and initialize camera
+    async function openScannerModal() {
+        const modal = document.getElementById('scannerModal');
+        modal.classList.add('active');
+        
+        videoElement = document.getElementById('scanner-video');
+        
+        // Create a hidden canvas for QR code detection
+        if (!canvasElement) {
+            canvasElement = document.createElement('canvas');
+            canvasElement.style.display = 'none';
+            document.body.appendChild(canvasElement);
+            canvasContext = canvasElement.getContext('2d');
+        }
+        
+        // Show loading message
+        document.getElementById('scanner-loading').style.display = 'block';
+        document.getElementById('scanner-error').style.display = 'none';
+        document.getElementById('scan-result').textContent = '';
+        
+        // List available cameras and create selector
+        try {
+            const videoDevices = await listVideoDevices();
+            createDeviceSelector(videoDevices);
+        } catch (err) {
+            console.error("Error setting up device selector:", err);
+        }
+    }
+    
+    // Function to close the scanner modal and stop the camera
+    function closeScannerModal() {
+        const modal = document.getElementById('scannerModal');
+        modal.classList.remove('active');
+        stopScanning();
+    }
+    
+    // Start the camera and QR scanning - optimized for mobile devices
+    async function startScanning() {
+        if (!videoElement) return;
+        
+        stopScanning(); // Stop any existing scan
+    
+    document.getElementById('scanner-loading').style.display = 'block';
+    document.getElementById('scanner-error').style.display = 'none';
+    
+    try {
+        // First try directly accessing the rear camera (best for mobile)
+        try {
+            console.log("Trying direct mobile camera access...");
+            const mobileStream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    facingMode: { exact: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            });
+            
+            videoElement.srcObject = mobileStream;
+            await videoElement.play();
+            
+            document.getElementById('scanner-loading').style.display = 'none';
+            scanIntervalId = setInterval(scanQrCode, 500);
+            return; // Success, exit early
+        } catch (mobileErr) {
+            console.log("Exact environment camera failed, trying fallback...", mobileErr);
+            
+            // Try with more relaxed constraints for mobile
+            try {
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                });
+                
+                videoElement.srcObject = fallbackStream;
+                await videoElement.play();
+                
+                document.getElementById('scanner-loading').style.display = 'none';
+                scanIntervalId = setInterval(scanQrCode, 500);
+                return; // Success with fallback
+            } catch (fallbackErr) {
+                console.log("Fallback environment mode failed, trying selector...", fallbackErr);
+                // Continue to next approach
+            }
+        }
+        
+        // If mobile-specific approaches failed, try with the camera selector
+        const cameraSelect = document.getElementById('camera-select');
+        const savedCameraId = localStorage.getItem('selectedCameraId');
+        
+        let constraints = { video: true }; // Simple constraints for better compatibility
+        
+        if (cameraSelect && cameraSelect.value) {
+            constraints.video = { deviceId: { exact: cameraSelect.value } };
+        } else if (savedCameraId) {
+            constraints.video = { deviceId: { exact: savedCameraId } };
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = stream;
+        await videoElement.play();
+        
+        document.getElementById('scanner-loading').style.display = 'none';
+        scanIntervalId = setInterval(scanQrCode, 500);
+        
+    } catch (err) {
+        console.error('Camera access error:', err);
+        document.getElementById('scanner-loading').style.display = 'none';
+        document.getElementById('scanner-error').style.display = 'block';
+        document.getElementById('scanner-error').textContent = 
+            'Kamerazugriff nicht möglich. Bitte prüfen Sie die Kameraberechtigungen in Ihrem Browser. ' +
+            'Auf Android müssen Sie möglicherweise die Kameraerlaubnis erteilen und die Seite neu laden.';
+        
+        // Add help button for mobile users
+        const errorDiv = document.getElementById('scanner-error');
+        if (errorDiv && !document.getElementById('camera-help-btn')) {
+            const helpBtn = document.createElement('button');
+            helpBtn.id = 'camera-help-btn';
+            helpBtn.textContent = 'Hilfe bei Kamerazugriff';
+            helpBtn.style.marginTop = '10px';
+            helpBtn.style.padding = '8px 15px';
+            helpBtn.style.backgroundColor = 'var(--button-bg)';
+            helpBtn.style.color = 'white';
+            helpBtn.style.border = 'none';
+            helpBtn.style.borderRadius = '4px';
+            helpBtn.onclick = function() {
+                alert('Tipps zur Behebung von Kamera-Problemen auf Android:\n\n' +
+                      '1. Prüfen Sie, ob Ihr Browser Kamerazugriff hat\n' + 
+                      '2. Stellen Sie sicher, dass keine andere App die Kamera verwendet\n' +
+                      '3. Versuchen Sie, die Seite neu zu laden\n' +
+                      '4. Versuchen Sie, die Fallback-Option "QR-Code als Bild hochladen" zu nutzen');
+            };
+            errorDiv.appendChild(helpBtn);
+        }
+    }
+}
+    function stopScanning() {
+        if (scanIntervalId) {
+            clearInterval(scanIntervalId);
+            scanIntervalId = null;
+        }
+        
+        if (videoElement && videoElement.srcObject) {
+            const tracks = videoElement.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+            videoElement.srcObject = null;
+        }
+    }
+    
+    // Scan video frame for QR code
+    function scanQrCode() {
+        if (!videoElement || !canvasElement || !canvasContext || videoElement.paused || videoElement.ended) return;
+        
+        if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+            // Set canvas dimensions to match video
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            
+            // Draw video frame to canvas
+            canvasContext.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            
+            // Get image data for QR detection
+            const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Detect QR code using jsQR
+            try {
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                
+                if (code) {
+                    // QR code found!
+                    console.log("QR Code detected:", code.data);
+                    
+                    // Process the QR code data - we don't stop scanning anymore
+                    // to allow consecutive scans of multiple children
+                    processQrCodeResult(code.data);
+                    
+                    // Pause scanning briefly to prevent duplicate scans of the same code
+                    clearInterval(scanIntervalId);
+                    setTimeout(() => {
+                        // Resume scanning after a brief delay
+                        scanIntervalId = setInterval(scanQrCode, 500);
+                    }, 2000); // 2 second pause between scans
+                }
+            } catch (err) {
+                console.error("QR scanning error:", err);
+            }
+        }
+    }
+    
+    // Process the detected QR code
+    function processQrCodeResult(qrData) {
+        // Attempt to extract child ID from QR code
+        let childId;
+        
+        try {
+            // Check if it's a simple ID or JSON data
+            if (qrData.startsWith('child-')) {
+                childId = qrData;
+            } else {
+                // Try to parse as JSON
+                const data = JSON.parse(qrData);
+                if (data.childId) {
+                    childId = data.childId;
+                }
+            }
+        } catch (e) {
+            console.log("QR code contains non-JSON data:", qrData);
+            childId = qrData; // Use as-is if not JSON
+        }
+        
+        // Find the child element with this ID
+        const childElement = document.getElementById(childId);
+        
+        if (childElement) {
+            // Get the checkbox for this child
+            const checkbox = childElement.querySelector('.check');
+            
+            // Toggle the checkbox state
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                // Update the scan result message
+                document.getElementById('scan-result').innerHTML = `
+                    <span style="color: green;">✓ Kind gefunden: </span> 
+                    ${childElement.querySelector('span').textContent} - 
+                    <strong>${checkbox.checked ? 'Abgehakt' : 'Abhaken rückgängig gemacht'}</strong>
+                `;
+            } else {
+                // Checkbox not found, show regular message
+                document.getElementById('scan-result').innerHTML = `
+                    <span style="color: green;">✓ Kind gefunden: </span> 
+                    ${childElement.querySelector('span').textContent}
+                `;
+            }
+            
+            // Highlight the child element
+            highlightChildElement(childElement);
+            
+            // Scroll to the child element to make it visible
+            childElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Save the updated state
+            saveTable();
+        } else {
+            // Child not found
+            document.getElementById('scan-result').innerHTML = `
+                <span style="color: red;">✗ Kind nicht gefunden: </span>
+                ${childId}
+            `;
+        }
+    }
+    
+    // Highlight a child element after scanning
+    function highlightChildElement(element) {
+        // Remove highlight from all children
+        document.querySelectorAll('.name').forEach(el => {
+            el.classList.remove('highlight-child');
+        });
+        
+        // Add highlight to this child
+        element.classList.add('highlight-child');
+        
+        // Remove the highlight after 5 seconds
+        setTimeout(() => {
+            element.classList.remove('highlight-child');
+        }, 5000);
+    }
+    
+    // Update the profile section to include QR code generation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add QR code section to profile modal
+        const profileSection = document.querySelector('.profile-section');
+        const qrCodeSection = document.createElement('div');
+        qrCodeSection.className = 'qr-code-section';
+        qrCodeSection.innerHTML = `
+            <h3>QR-Code</h3>
+            <div id="qrcode-container"></div>
+            <div class="qr-code-controls">
+                <button id="generateQrCode" class="camera-btn">QR-Code erstellen</button>
+                <button id="downloadQrCode" class="upload-btn">QR-Code herunterladen</button>
+            </div>
+        `;
+        profileSection.appendChild(qrCodeSection);
+        
+        // Add event listeners for QR code buttons
+        document.getElementById('generateQrCode').addEventListener('click', generateChildQrCode);
+        document.getElementById('downloadQrCode').addEventListener('click', downloadQrCode);
+        
+        // Add event listener to close scanner modal when clicking outside
+        const scannerModal = document.getElementById('scannerModal');
+        window.addEventListener('click', function(event) {
+            if (event.target === scannerModal) {
+                closeScannerModal();
+            }
+        });
+        
+        // Add close button handler for scanner modal
+        document.querySelector('#scannerModal .close').addEventListener('click', closeScannerModal);
+    });
+    
+    // Generate QR code for the current child
+    function generateChildQrCode() {
+        if (!currentNoteElement) return;
+        
+        const childId = currentNoteElement.id;
+        const childName = currentNoteElement.querySelector('span').textContent;
+        
+        // Create QR code data with only child ID for privacy
+        // No personal information is stored in the QR code itself
+        const qrData = JSON.stringify({
+            childId: childId,
+            timestamp: Date.now()
+            // Child name removed for privacy/data protection
+        });
+        
+        // Get the QR code container and clear it
+        const qrContainer = document.getElementById('qrcode-container');
+        qrContainer.innerHTML = ''; // Clear existing QR code
+        
+        // Create a canvas element for the QR code
+        const canvas = document.createElement('canvas');
+        canvas.width = 150;
+        canvas.height = 150;
+        qrContainer.appendChild(canvas);
+        
+        try {
+            // Try using toCanvas method (the proper method for this library)
+            QRCode.toCanvas(canvas, qrData, {
+                width: 150,
+                margin: 4,
+                color: {
+                    dark: "#000000",
+                    light: "#ffffff"
+                }
+            }, function(error) {
+                if (error) {
+                    console.error("QR code generation error:", error);
+                    fallbackQRGeneration(qrContainer, qrData);
+                } else {
+                    // Save QR data to child's profile after successful generation
+                    const profiles = JSON.parse(localStorage.getItem('childProfiles') || '{}');
+                    const profileData = profiles[childId] || {};
+                    
+                    // Save the QR data to the profile
+                    profileData.qrData = qrData;
+                    profiles[childId] = profileData;
+                    localStorage.setItem('childProfiles', JSON.stringify(profiles));
+                    console.log("QR code saved for child ID:", childId);
+                }
+            });
+        } catch (err) {
+            console.error("Primary QR method failed:", err);
+            fallbackQRGeneration(qrContainer, qrData);
+        }
+    }
+    
+    // Fallback methods for QR code generation
+    function fallbackQRGeneration(container, data) {
+        container.innerHTML = ''; // Clear container
+        
+        try {
+            // Try alternative API patterns
+            if (typeof QRCode.toString === 'function') {
+                // Try SVG generation if available
+                const svgString = QRCode.toString(data, {
+                    type: 'svg',
+                    margin: 4,
+                    width: 150,
+                    color: {
+                        dark: "#000000",
+                        light: "#ffffff"
+                    }
+                });
+                container.innerHTML = svgString;
+                return;
+            }
+            
+            // Last resort: manual QR code rendering
+            const div = document.createElement('div');
+            div.style.textAlign = 'center';
+            div.innerHTML = `
+                <p><strong>QR-Code Inhalt:</strong></p>
+                <textarea readonly style="width: 140px; height: 100px;">${data}</textarea>
+                <p style="color: orange;">QR-Code konnte nicht generiert werden.</p>
+            `;
+            container.appendChild(div);
+            
+        } catch (fallbackErr) {
+            console.error("All QR methods failed:", fallbackErr);
+            container.innerHTML = '<p style="color: red;">QR-Code Fehler: ' + fallbackErr.message + '</p>';
+        }
+    }
+    
+    // Download the generated QR code
+    function downloadQrCode() {
+        const qrContainer = document.getElementById('qrcode-container');
+        const canvas = qrContainer.querySelector('canvas');
+        
+        if (!canvas) {
+            alert('Bitte erstellen Sie zuerst einen QR-Code.');
+            return;
+        }
+        
+        // Create a link to download the canvas as PNG
+        const link = document.createElement('a');
+        
+        // Get child name for the filename
+        let filename = 'qrcode';
+        if (currentNoteElement) {
+            const childName = currentNoteElement.querySelector('span').textContent;
+            filename = 'QR-' + childName.replace(/\s+/g, '-');
+        }
+        
+        link.download = filename + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize existing features
+        loadTimeSlots();
+        
+        // Check if theme was previously set
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        }
+        
+        // Set up email test button if admin view is enabled
+        if (isAuthenticated) {
+            setupEmailTestButton();
+        }
+        
+        // Load assigned employees and display notification button
+        loadAssignedEmployeesWithNotifyButton();
+    });
+    
+    // Function to toggle the "add employee" form
+    function toggleAddEmployeeForm() {
+        const form = document.querySelector('.add-employee');
+        const toggleButton = document.querySelector('.add-employee-toggle');
+        
+        if (form) {
+            // Toggle form visibility
+            if (form.style.display === 'none' || !form.style.display) {
+                form.style.display = 'block';
+                toggleButton.style.backgroundColor = 'var(--button-hover)';
+                toggleButton.style.color = 'white';
+                toggleButton.querySelector('.plus-icon').textContent = '−';
+            } else {
+                form.style.display = 'none';
+                toggleButton.style.backgroundColor = '';
+                toggleButton.style.color = '';
+                toggleButton.querySelector('.plus-icon').textContent = '+';
+            }
+        }
+    }
+    
+    // Function to move all unchecked children to the deletion zone
+    function moveUncheckedToDeleteZone() {
+        // Find the deletion zone
+        const deleteZone = document.querySelector('.deletezone');
+        if (!deleteZone) return;
+        
+        // Get all dropzones
+        const dropzones = document.querySelectorAll('.dropzone');
+        let movedCount = 0;
+        
+        // Store original positions for restoration
+        const movedChildren = [];
+        
+        // For each dropzone, find unchecked children and move them
+        dropzones.forEach((zone, zoneIndex) => {
+            // Get all children in this zone
+            const children = Array.from(zone.querySelectorAll('.name'));
+            
+            // Filter to only children with unchecked checkboxes
+            const uncheckedChildren = children.filter(child => {
+                const checkbox = child.querySelector('.check');
+                return checkbox && !checkbox.checked;
+            });
+            
+            // Move each unchecked child to the deletion zone
+            uncheckedChildren.forEach(child => {
+                // Store original position
+                movedChildren.push({
+                    childId: child.id,
+                    originalZone: zoneIndex,
+                    element: child
+                });
+                
+                // Remove from current zone
+                zone.removeChild(child);
+                
+                // Add animation class
+                child.classList.add('name-delete');
+                
+                // Add to deletion zone
+                deleteZone.appendChild(child);
+                
+                // Animate the move
+                child.style.animation = 'fadeIn 0.3s ease-out';
+                
+                movedCount++;
+            });
+        });
+
+        // Store the moved children data in sessionStorage
+        if (movedChildren.length > 0) {
+            const currentData = JSON.parse(sessionStorage.getItem('temporaryMoves') || '{}');
+            currentData[currentDay] = movedChildren.map(item => ({
+                childId: item.childId,
+                originalZone: item.originalZone
+            }));
+            sessionStorage.setItem('temporaryMoves', JSON.stringify(currentData));
+        }
+
+        // Update feedback message
+        if (movedCount > 0) {
+            alert(`${movedCount} Kinder wurden temporär in die Löschzone verschoben. Beim Tagewechsel werden sie automatisch zurückverschoben.`);
+        } else {
+            alert('Keine nicht abgehakten Kinder gefunden.');
+        }
+    }
+
+    // Add new function to restore moved children
+    function restoreMovedChildren() {
+        const temporaryMoves = JSON.parse(sessionStorage.getItem('temporaryMoves') || '{}');
+        const dayMoves = temporaryMoves[currentDay] || [];
+        
+        if (dayMoves.length > 0) {
+            const dropzones = document.querySelectorAll('.dropzone');
+            const deleteZone = document.querySelector('.deletezone');
+            
+            dayMoves.forEach(move => {
+                const child = document.getElementById(move.childId);
+                if (child && deleteZone.contains(child)) {
+                    const targetZone = dropzones[move.originalZone];
+                    if (targetZone) {
+                        deleteZone.removeChild(child);
+                        targetZone.appendChild(child);
+                        child.classList.remove('name-delete');
+                    }
+                }
+            });
+            
+            // Clear the moves for this day
+            delete temporaryMoves[currentDay];
+            sessionStorage.setItem('temporaryMoves', JSON.stringify(temporaryMoves));
+        }
+    }
+
+    // Function to load assigned employees and add notification buttons
+    function loadAssignedEmployeesWithNotifyButton() {
+        try {
+            // Get assigned employees for the current day
+            const assignedEmployees = JSON.parse(localStorage.getItem('assignedEmployees') || '{}');
+            const allEmployees = JSON.parse(localStorage.getItem('globalEmployees')) || [];
+            
+            // Only proceed if we have both assigned employees and staff records
+            if (Object.keys(assignedEmployees).length === 0 || allEmployees.length === 0) {
+                return;
+            }
+            
+            // Get time slots from the current display
+            const timeSlots = Array.from(document.querySelectorAll('.time-cell')).map(cell => cell.textContent);
+            
+            // For each column with assigned employees
+            Object.keys(assignedEmployees).forEach(columnKey => {
+                // Extract column index from key (format: "column-X")
+                const columnIndex = parseInt(columnKey.split('-')[1]);
+                
+                // Skip if not a valid time column
+                if (columnIndex <= 0 || columnIndex > timeSlots.length) {
+                    return;
+                }
+                
+                // Get the button for this column
+                const button = document.getElementById(`zuständigButton-${columnIndex}`);
+                if (!button) return;
+                
+                // Get time slot text
+                const timeSlot = timeSlots[columnIndex - 1];
+                if (!timeSlot) return;
+                
+                // Get assigned employee names for this column
+                const employeeNames = assignedEmployees[columnKey] || [];
+                if (employeeNames.length === 0) return;
+                
+                // Get children assigned to this time slot
+                const tableData = JSON.parse(localStorage.getItem(storageKeys[currentDay]) || '{"dropzones":[]}');
+                const timeZoneIndex = columnIndex - 1;
+                const children = tableData.dropzones[timeZoneIndex] || [];
+                const childrenNames = children.map(child => child.text).join(', ');
+                
+                // Check if any eligible employees (with email and notifications enabled)
+                const eligibleEmployees = allEmployees.filter(emp => 
+                    employeeNames.includes(emp.name) && emp.email && emp.receiveNotifications
+                );
+                
+                    // Notification buttons have been removed from "zuständig" headers as requested
+            });
+        } catch (error) {
+            console.error("Error in loadAssignedEmployeesWithNotifyButton:", error);
+        }
+    }
+
+// Add this function to handle device selection and display
+async function setupCameraSelector() {
+    try {
+        const videoDevices = await listVideoDevices();
+        const scannerContainer = document.querySelector('.scanner-container');
+        
+        // Remove any existing selector
+        const existingSelector = document.getElementById('camera-select-container');
+        if (existingSelector) {
+            existingSelector.remove();
+        }
+        
+        // Create camera selection UI
+        const selectorContainer = document.createElement('div');
+        selectorContainer.id = 'camera-select-container';
+        selectorContainer.style.cssText = 'margin: 15px 0; text-align: center; padding: 10px; background-color: var(--dropzone-bg); border-radius: 6px;';
+        
+        // Show camera count and status message
+        let htmlContent = `
+            <div style="margin-bottom: 10px; font-weight: bold;">
+                Verfügbare Kameras: ${videoDevices.length} 
+                ${videoDevices.length === 0 ? '(Keine Kameras gefunden)' : ''}
+            </div>
+        `;
+        
+        // Add dropdown for camera selection
+        if (videoDevices.length >= 1) {
+            htmlContent += `
+                <label for="camera-select" style="display: block; margin-bottom: 8px;">Kamera auswählen:</label>
+                <select id="camera-select" style="width: 100%; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
+                    ${videoDevices.map((device, idx) => `
+                        <option value="${device.deviceId}">
+                            ${device.label || `Kamera ${idx + 1}`}
+                        </option>
+                    `).join('')}
+                </select>
+            `;
+        }
+        
+        // Add direct switch camera button
+        if (videoDevices.length > 1) {
+            htmlContent += `
+                <button id="switch-camera-btn" style="width: 100%; padding: 10px; background-color: var(--day-button-bg); color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px;">
+                    📷 Kamera wechseln
+                </button>
+            `;
+        }
+        
+        selectorContainer.innerHTML = htmlContent;
+        
+        // Insert after the video element
+        const videoElement = document.getElementById('scanner-video');
+        if (videoElement && videoElement.parentNode) {
+            videoElement.parentNode.insertBefore(selectorContainer, videoElement.nextSibling);
+            
+            // Setup dropdown if available
+            const select = document.getElementById('camera-select');
+            if (select) {
+                // Set the selected option based on saved preference if available
+                const savedCameraId = localStorage.getItem('selectedCameraId');
+                if (savedCameraId) {
+                    // Find and select the saved camera if it exists in the list
+                    const option = Array.from(select.options).find(opt => opt.value === savedCameraId);
+                    if (option) {
+                        select.value = savedCameraId;
+                    }
+                }
+                
+                select.addEventListener('change', async () => {
+                    // Save the selected camera ID to localStorage
+                    localStorage.setItem('selectedCameraId', select.value);
+                    await startScanning(); // Restart scanning with new camera
+                });
+            }
+            
+            // Setup direct switch button if available
+            const switchBtn = document.getElementById('switch-camera-btn');
+            if (switchBtn) {
+                switchBtn.addEventListener('click', async () => {
+                    // Get current camera index
+                    const currentDeviceId = localStorage.getItem('selectedCameraId');
+                    const currentIndex = videoDevices.findIndex(device => device.deviceId === currentDeviceId);
+                    
+                    // Calculate next camera index (cycle through available cameras)
+                    const nextIndex = (currentIndex + 1) % videoDevices.length;
+                    const nextDevice = videoDevices[nextIndex];
+                    
+                    // Update dropdown if it exists
+                    if (select) {
+                        select.value = nextDevice.deviceId;
+                    }
+                    
+                    // Save and apply the new camera
+                    localStorage.setItem('selectedCameraId', nextDevice.deviceId);
+                    await startScanning();
+                    
+                    // Show feedback
+                    document.getElementById('scan-result').innerHTML = `
+                        <span style="color: var(--button-bg);">Kamera gewechselt zu: ${nextDevice.label || `Kamera ${nextIndex + 1}`}</span>
+                    `;
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error setting up camera selector:', error);
+    }
+}
+
+// Remove the duplicate openScannerModal function at the end
+  </script>
+</body>
+</html>
